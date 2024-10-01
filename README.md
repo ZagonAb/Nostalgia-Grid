@@ -1,5 +1,5 @@
 # Nostalgia-Grid
-- La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir u colección de juegos retro.
+- La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.
 
 # Los elementos clave son los siguientes:
 - Lista de Consolas a la Izquierda: A diferencia de la interfaz original  que ofrece  Nintendo Switch, que presenta una única colección de juegos, en esta interfaz se han agrupado los juegos de diferentes consolas.
