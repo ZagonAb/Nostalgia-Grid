@@ -1,4 +1,4 @@
-# Nostalgia-Grid
+# Nostalgia-Grid theme for Pegasus
 - La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.
 
 # Los elementos clave son los siguientes:
@@ -12,9 +12,12 @@
 - La idea de este tema es ofrecer a los usuarios una experiencia similar a la que proporciona la interfaz de Nintendo Switch para sus juegos retro, adaptando algunas funcionalidades para un público más amplio. No tiene ninguna intención de copiar de forma malintencionada, sino que es un homenaje a la interfaz de Nintendo, buscando emular la experiencia intuitiva y nostálgica que ofrece al navegar entre sus clásicos de NES™, Super NES™ y Game Boy™. El objetivo es capturar la misma sensación de simplicidad y elegancia en la organización de juegos retro, permitiendo a los usuarios disfrutar de sus títulos favoritos en un entorno familiar y accesible.
 
 # Demo
-![DEMO](https://github.com/user-attachments/assets/eb57ae2c-bb6b-4ac6-b746-92cac0910762)
+![DEMO](https://github.com/user-attachments/assets/e2719164-1022-4133-8262-c412666749a8)
 
 # Screenshots
 ![screenshot](https://github.com/user-attachments/assets/05901626-69f0-4d57-ad95-9e258005d991)
 ![screenshot1](https://github.com/user-attachments/assets/d854c9d3-dbac-4332-93cd-c6221a7d3085)
 ![screenshot2](https://github.com/user-attachments/assets/6bbfeb57-a7e3-466b-a700-7ac9a212252b)
+
+# Licencia
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Licencia Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"></a>
