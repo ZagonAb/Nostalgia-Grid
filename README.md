@@ -11,7 +11,7 @@
 # Los elementos clave son los siguientes
 - Lista de Consolas a la Izquierda: A diferencia de la interfaz original  que ofrece  Nintendo Switch, que presenta una única colección de juegos, en esta interfaz se han agrupado los juegos de diferentes consolas.
 - Galería de Portadas de Juegos: Las portadas de los juegos están distribuidas en una cuadrícula con un estilo visual que resalta la carátulas del títulos retro seleccionado, similarinterfaz original.
-- Selección de Opciones y Navegación: En la parte inferior de la pantalla, hay un menú horizontal con opciones como "Collections", "Exit", "Details", y "Start", todas con indicaciones de botones de control.
+- Selección de Opciones y Navegación: En la parte inferior de la pantalla, hay una barra horizontal con opciones como "Collections", "Exit", "Details", y "Start", todas con indicaciones de botones de control.
 - Sonidos de Navegación y Selección: Al igual que en la interfaz original que utilizar Nintendo Switch para los juegos retro la navegación entre los elementos de la pantalla y la selección de consolas están acompañadas por sonidos distintivos, creando una experiencia de usuario fluida y envolvente.
 - Pantalla de Detalles del Juego: Al seleccionar un juego, pude despliega una pantalla que ofrece detalles específicos del título, similar a la interfaz de Nintendo Switch para juegos retro. A la izquierda, se muestra una captura de pantalla, mientras que a la derecha aparece el nombre del juego junto con información adicional como la fecha de lanzamiento, desarrollador, número de jugadores y una breve descripción.
 
