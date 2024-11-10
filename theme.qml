@@ -103,6 +103,7 @@ FocusScope {
                     height: Math.min(parent.height * 0.12, 100)
 
                     Image {
+                        id: collectionImage
                         source: "assets/systems/" + model.shortName + ".png"
                         anchors.centerIn: parent
                         fillMode: Image.PreserveAspectFit
@@ -112,6 +113,19 @@ FocusScope {
                         height: width / (sourceSize.width / sourceSize.height)
                         
                         opacity: index === collectionListView.currentIndex && !root.gridViewFocused ? 1 : 0.5
+                    }
+
+                    Image {
+                        id: defaultImage
+                        source: "assets/systems/default.png"
+                        anchors.centerIn: parent
+                        fillMode: Image.PreserveAspectFit
+                        width: Math.min(parent.width * 0.9, parent.height * 1.8)
+                        height: width / (sourceSize.width / sourceSize.height)
+                        visible: collectionImage.status === Image.Error
+                        opacity: index === collectionListView.currentIndex && !root.gridViewFocused ? 1 : 0.5
+                        mipmap: true
+                        smooth: true
                     }
                 }
 
@@ -197,6 +211,17 @@ FocusScope {
                             visible: gameGridView.currentIndex === index && root.gridViewFocused
                             scale: boxFront.scale
                         }
+
+
+                        Image {
+                            id: defaultImage
+                            source: "assets/no-image/default.png"
+                            anchors.fill: boxFront
+                            fillMode: Image.PreserveAspectCrop
+                            mipmap: true
+                            visible: boxFront.status === Image.Error
+                            scale: boxFront.scale
+                        }
                     }
 
                     onCurrentIndexChanged: {
@@ -258,12 +283,31 @@ FocusScope {
             anchors.margins: 10
             spacing: Math.max(10, parent.width * 0.02)
 
-            Image {
-                id: gameScreenshot
-                source: game ? game.assets.screenshots[0] : ""
-                fillMode: Image.PreserveAspectFit
+            Item {
                 width: parent.width * 0.4
                 height: parent.height
+
+                Image {
+                    id: gameScreenshot
+                    source: game && game.assets.screenshots.length > 0 ? game.assets.screenshots[0] : ""
+                    fillMode: Image.PreserveAspectFit
+                    width: parent.width
+                    height: parent.height
+                    mipmap: true
+                    smooth: true
+                    visible: status === Image.Ready
+                }
+
+                Image {
+                    id: defaultImage
+                    source: "assets/no-image/default2.png"
+                    fillMode: Image.PreserveAspectFit
+                    width: parent.width
+                    height: parent.height
+                    mipmap: true
+                    smooth: true
+                    visible: gameScreenshot.status === Image.Error || gameScreenshot.source === ""
+                }
             }
 
             Item {
