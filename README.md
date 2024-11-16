@@ -1,4 +1,4 @@
-![DEMO](https://github.com/ZagonAb/Nostalgia-Grid/blob/d5fb6bdd14b39e4d9c690e11eb95efbbb6a1c8f1/.meta/screenshots/DEMO.gif)
+![DEMO](https://github.com/ZagonAb/Nostalgia-Grid/blob/b08d427d52e84fe503247dc6ccc95f86d0f53495/.meta/screenshots/DEMO.gif)
 
 # Screenshots
 ![screenshot](https://github.com/user-attachments/assets/05901626-69f0-4d57-ad95-9e258005d991)
