@@ -134,9 +134,11 @@ FocusScope {
                         positionViewAtIndex(indexToPosition, ListView.Center)
                     }
                 }
+
                 Behavior on indexToPosition {
                     NumberAnimation { duration: 200 }
                 }
+
                 onCurrentIndexChanged: {
                     const selectedCollection = api.collections.get(currentIndex)
                     gameGridView.model = selectedCollection.games
@@ -167,60 +169,163 @@ FocusScope {
                 GridView {
                     id: gameGridView
                     anchors.fill: parent
-                    property int columns: 4
-                    property int rows: 2
+                    property bool isHorizontalMode: false
+                    property int columns: isHorizontalMode ? 4 : 6
+                    property int rows: isHorizontalMode ? 4 : 3
                     cellWidth: width / columns
                     cellHeight: height / rows
                     focus: root.gridViewFocused
                     property string currentGame: ""
-                    
+                    clip: false
+                    property real targetCellWidth: width / columns
+                    property real targetCellHeight: height / rows
+
+                    Behavior on cellWidth {
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.OutQuad
+                        }
+                    }
+
+                    Behavior on cellHeight {
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.OutQuad
+                        }
+                    }
+
                     delegate: Item {
                         id: gameItem
                         width: gameGridView.cellWidth
                         height: gameGridView.cellHeight
-                        z: gameGridView.currentIndex === index && root.gridViewFocused ? 2 : 1
+                        z: gameGridView.currentIndex === index && root.gridViewFocused ? 100 : 1
 
-                        Image {
-                            id: boxFront
-                            source: model.assets.boxFront
-                            anchors.fill: parent
-                            fillMode: Image.PreserveAspectCrop                            
-                            asynchronous: true
-                            scale: gameGridView.currentIndex === index && root.gridViewFocused ? 1.15 : 1.0
-                            
-                            Behavior on scale { 
-                                NumberAnimation { 
-                                    duration: 250 
-                                    easing.type: Easing.OutQuad
-                                } 
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutQuad
                             }
                         }
 
-                        Rectangle {
-                            anchors.fill: boxFront
-                            color: "transparent"
-                            border.color: gameGridView.currentIndex === index && root.gridViewFocused ? "white" : "transparent"
-                            border.width: 2
-                            scale: boxFront.scale
+                        Behavior on height {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutQuad
+                            }
                         }
 
-                        Rectangle {
-                            anchors.fill: boxFront
-                            color: "black"
-                            opacity: 0.5
-                            visible: gameGridView.currentIndex === index && root.gridViewFocused
-                            scale: boxFront.scale
-                        }
+                        Item {
+                            id: imageContainer
+                            property real zoomScale: gameGridView.currentIndex === index && root.gridViewFocused ?
+                            (boxFront.sourceSize.width > boxFront.sourceSize.height ? 1.3 : 1.15) : 1.0
 
+                            width: parent.width * zoomScale
+                            height: parent.height * zoomScale
 
-                        Image {
-                            id: defaultImage
-                            source: "assets/no-image/default.png"
-                            anchors.fill: boxFront
-                            fillMode: Image.PreserveAspectCrop
-                            mipmap: true
-                            visible: boxFront.status === Image.Error
-                            scale: boxFront.scale
+                            x: {
+                                if (gameGridView.currentIndex === index && root.gridViewFocused) {
+                                    var extraWidth = width - parent.width
+                                    if ((index % gameGridView.columns) === gameGridView.columns - 1) {
+                                        return -extraWidth
+                                    }
+                                    else if ((index % gameGridView.columns) === 0) {
+                                        return 0
+                                    }
+                                    return -extraWidth / 2
+                                }
+                                return 0
+                            }
+
+                            y: {
+                                if (gameGridView.currentIndex === index && root.gridViewFocused) {
+                                    var extraHeight = height - parent.height
+                                    if (Math.floor(index / gameGridView.columns) === 0) {
+                                        return 0
+                                    }
+                                    else if (Math.floor(index / gameGridView.columns) === gameGridView.rows - 1) {
+                                        return -extraHeight
+                                    }
+                                    return -extraHeight / 2
+                                }
+                                return 0
+                            }
+
+                            Behavior on x {
+                                NumberAnimation {
+                                    duration: 250
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            Behavior on y {
+                                NumberAnimation {
+                                    duration: 250
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: 250
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            Behavior on height {
+                                NumberAnimation {
+                                    duration: 250
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            Image {
+                                id: boxFront
+                                anchors.fill: parent
+                                source: model.assets.boxFront
+                                fillMode: Image.Stretch
+                                asynchronous: true
+
+                                onStatusChanged: {
+                                    if (status === Image.Ready && gameGridView.currentIndex === index) {
+                                        gameGridView.isHorizontalMode = sourceSize.width > sourceSize.height
+                                    }
+                                }
+
+                                layer.enabled: gameGridView.currentIndex === index && root.gridViewFocused
+                                layer.effect: DropShadow {
+                                    horizontalOffset: 5
+                                    verticalOffset: 5
+                                    radius: 80
+                                    samples: 300
+                                    color: "#FF000000"
+                                }
+                            }
+
+                            Rectangle {
+                                id: rectangleCurrentIndex
+                                anchors.fill: parent
+                                color: "transparent"
+                                border.color: gameGridView.currentIndex === index && root.gridViewFocused ? "white" : "transparent"
+                                border.width: 2
+
+                                SequentialAnimation on border.color {
+                                    running: gameGridView.currentIndex === index && root.gridViewFocused
+                                    loops: Animation.Infinite
+                                    ColorAnimation { to: "transparent"; duration: 500 }
+                                    PauseAnimation { duration: 100 }
+                                    ColorAnimation { to: "white"; duration: 500 }
+                                    PauseAnimation { duration: 400 }
+                                }
+                            }
+
+                            Image {
+                                id: defaultImage
+                                source: "assets/no-image/default.png"
+                                anchors.fill: parent
+                                fillMode: Image.PreserveAspectCrop
+                                mipmap: true
+                                visible: boxFront.status === Image.Error
+                            }
                         }
                     }
 
@@ -230,6 +335,11 @@ FocusScope {
                         gameGridView.currentGame = selectedGame ? selectedGame.title : "";
                         const currentCollectionShortName = collectionListView.currentShortName;
                         game = gameGridView.model.get(currentIndex);
+                        if (selectedGame && selectedGame.assets && selectedGame.assets.boxFront) {
+                            var img = new Image();
+                            img.source = selectedGame.assets.boxFront;
+                            isHorizontalMode = img.sourceSize.width > img.sourceSize.height;
+                        }
                     }
 
                     Keys.onLeftPressed: {
@@ -249,13 +359,14 @@ FocusScope {
                                 toDetails.play();
                                 gameInfoRect.forceActiveFocus();
                             } else if (api.keys.isAccept(event)) {
-                                 event.accepted = true;
+                                event.accepted = true;
                                 launchTimer.start();
                                 launchgame.play();
                             }
                         }
                     }
                 }
+
             }
         }
     }
