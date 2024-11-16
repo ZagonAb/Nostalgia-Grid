@@ -1,9 +1,9 @@
 ![DEMO](https://github.com/ZagonAb/Nostalgia-Grid/blob/b08d427d52e84fe503247dc6ccc95f86d0f53495/.meta/screenshots/DEMO.gif)
 
 # Screenshots
-![screenshot](https://github.com/user-attachments/assets/05901626-69f0-4d57-ad95-9e258005d991)
-![screenshot1](https://github.com/user-attachments/assets/d854c9d3-dbac-4332-93cd-c6221a7d3085)
-![screenshot2](https://github.com/user-attachments/assets/6bbfeb57-a7e3-466b-a700-7ac9a212252b)
+![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/39595afa79c72868a9d8afa8ed9c7646d71782b4/.meta/screenshots/screenshot.png)
+![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/39595afa79c72868a9d8afa8ed9c7646d71782b4/.meta/screenshots/screenshot1.png)
+![screenshot2](https://github.com/ZagonAb/Nostalgia-Grid/blob/39595afa79c72868a9d8afa8ed9c7646d71782b4/.meta/screenshots/screenshot2.png)
 
 # Nostalgia-Grid theme for Pegasus
 - La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.
