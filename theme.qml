@@ -111,8 +111,30 @@ FocusScope {
                         mipmap: true
                         width: Math.min(parent.width * 0.9, parent.height * 1.8)
                         height: width / (sourceSize.width / sourceSize.height)
-                        
+
                         opacity: index === collectionListView.currentIndex && !root.gridViewFocused ? 1 : 0.5
+
+                        SequentialAnimation {
+                            running: index === collectionListView.currentIndex
+                            loops: Animation.Infinite
+
+                            PropertyAnimation {
+                                target: collectionImage
+                                property: "scale"
+                                to: 0.9
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+                            PropertyAnimation {
+                                target: collectionImage
+                                property: "scale"
+                                to: 1.0
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+                        }
+
+                        scale: index === collectionListView.currentIndex ? collectionImage.scale : 1.0
                     }
 
                     Image {
@@ -126,6 +148,28 @@ FocusScope {
                         opacity: index === collectionListView.currentIndex && !root.gridViewFocused ? 1 : 0.5
                         mipmap: true
                         smooth: true
+
+                        SequentialAnimation {
+                            running: index === collectionListView.currentIndex
+                            loops: Animation.Infinite
+
+                            PropertyAnimation {
+                                target: defaultImage
+                                property: "scale"
+                                to: 0.9
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+                            PropertyAnimation {
+                                target: defaultImage
+                                property: "scale"
+                                to: 1.0
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+                        }
+
+                        scale: index === collectionListView.currentIndex ? defaultImage.scale : 1.0
                     }
                 }
 
