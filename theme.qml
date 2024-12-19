@@ -269,11 +269,12 @@ FocusScope {
                             x: {
                                 if (gameGridView.currentIndex === index && root.gridViewFocused) {
                                     var extraWidth = width - parent.width
-                                    if ((index % gameGridView.columns) === gameGridView.columns - 1) {
-                                        return -extraWidth
-                                    }
-                                    else if ((index % gameGridView.columns) === 0) {
+                                    var column = index % gameGridView.columns
+
+                                    if (column === 0) {
                                         return 0
+                                    } else if (column === gameGridView.columns - 1) {
+                                        return -extraWidth
                                     }
                                     return -extraWidth / 2
                                 }
@@ -283,10 +284,16 @@ FocusScope {
                             y: {
                                 if (gameGridView.currentIndex === index && root.gridViewFocused) {
                                     var extraHeight = height - parent.height
-                                    if (Math.floor(index / gameGridView.columns) === 0) {
+                                    var row = Math.floor(index / gameGridView.columns)
+                                    var totalRows = Math.ceil(gameGridView.count / gameGridView.columns)
+                                    var visibleRows = Math.floor(gameGridView.height / gameGridView.cellHeight)
+                                    var itemY = row * gameGridView.cellHeight
+                                    var viewportTop = gameGridView.contentY
+                                    var viewportBottom = viewportTop + gameGridView.height
+                                    if (itemY - viewportTop < gameGridView.cellHeight) {
                                         return 0
                                     }
-                                    else if (Math.floor(index / gameGridView.columns) === gameGridView.rows - 1) {
+                                    else if (viewportBottom - itemY < gameGridView.cellHeight * 2) {
                                         return -extraHeight
                                     }
                                     return -extraHeight / 2
@@ -410,7 +417,6 @@ FocusScope {
                         }
                     }
                 }
-
             }
         }
     }
