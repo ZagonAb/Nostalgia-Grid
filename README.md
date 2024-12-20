@@ -5,6 +5,25 @@
 ![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/39595afa79c72868a9d8afa8ed9c7646d71782b4/.meta/screenshots/screenshot1.png)
 ![screenshot2](https://github.com/ZagonAb/Nostalgia-Grid/blob/39595afa79c72868a9d8afa8ed9c7646d71782b4/.meta/screenshots/screenshot2.png)
 
+<details>
+<summary>Cambios y mejoras recientes en el Tema 12/24</summary> 
+  <br>
+  
+<details>
+<summary>Mejora en el manejo de proporciones de imágenes en GridView</summary>
+
+- Se implementó una solución para mejorar la visualización de imágenes en el GridView, corrigiendo problemas de recorte y posicionamiento cuando las imágenes se seleccionan y amplían.
+</details>
+
+<details>
+<summary>Uso de texto en lugar de imágenes para elementos ausentes</summary>
+
+- Se reemplazaron las imágenes default.png y default2.png por texto. En el caso de default.png, se agregó el título del juego, mientras que para default2.png se añadió el texto: "No image available". 
+</details>
+
+</details>
+
+
 # Nostalgia-Grid theme for Pegasus
 - La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.
 

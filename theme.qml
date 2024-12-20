@@ -348,8 +348,9 @@ FocusScope {
                             Image {
                                 id: boxFront
                                 anchors.fill: parent
-                                source: model.assets.boxFront
+                                source: model.assets.boxFront || ""
                                 fillMode: Image.Stretch
+                                visible: status === Image.Ready
                                 asynchronous: true
                                 onStatusChanged: {
                                     if (status === Image.Ready && gameGridView.currentIndex === index) {
@@ -384,13 +385,24 @@ FocusScope {
                                 }
                             }
 
-                            Image {
-                                id: defaultImage
-                                source: "assets/no-image/default.png"
+                            Rectangle {
+                                id: titleBackground
                                 anchors.fill: parent
-                                fillMode: Image.PreserveAspectCrop
-                                mipmap: true
-                                visible: boxFront.status === Image.Error
+                                color: "#1a1a1a"
+                                visible: !boxFront.visible
+
+                                Text {
+                                    id: titleText
+                                    text: model.title
+                                    anchors.centerIn: parent
+                                    width: parent.width * 0.9
+                                    wrapMode: Text.WordWrap
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: "white"
+                                    font.pixelSize: parent.height * 0.08
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 3
+                                }
                             }
                         }
                     }
@@ -474,15 +486,19 @@ FocusScope {
                     visible: status === Image.Ready
                 }
 
-                Image {
-                    id: defaultImage
-                    source: "assets/no-image/default2.png"
-                    fillMode: Image.PreserveAspectFit
-                    width: parent.width
-                    height: parent.height
-                    mipmap: true
-                    smooth: true
-                    visible: gameScreenshot.status === Image.Error || gameScreenshot.source === ""
+                Text {
+                    id: noScreenshot
+                    text: "No image available"
+                    anchors.centerIn: parent
+                    width: parent.width * 0.9
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    color: "#303030"
+                    font.bold: true
+                    font.pixelSize: parent.height * 0.1
+                    elide: Text.ElideRight
+                    maximumLineCount: 3
+                    visible: !gameScreenshot.visible
                 }
             }
 
