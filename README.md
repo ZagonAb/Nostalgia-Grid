@@ -13,6 +13,7 @@
 <summary>Mejora en el manejo de proporciones de imágenes en GridView</summary>
 
 - Se implementó una solución para mejorar la visualización de imágenes en el GridView, corrigiendo problemas de recorte y posicionamiento cuando las imágenes se seleccionan y amplían.
+- Se ha optimizado la carga de imágenes y el manejo del diseño de GridView.
 </details>
 
 <details>
@@ -21,8 +22,22 @@
 - Se reemplazaron las imágenes default.png y default2.png por texto. En el caso de default.png, se agregó el título del juego, mientras que para default2.png se añadió el texto: "No image available". 
 </details>
 
+<details>
+<summary>Varias mejoras para mejorar el rendimiento de GridView y la experiencia del usuario</summary>
+
+- Se agregó una optimización dinámica de la resolución de la imagen según la orientación
+- Se implementó la persistencia del diseño por colección para evitar cambios en el diseño de la cuadrícula al seleccionar imágenes
+- Se corrigió el restablecimiento del diseño al cambiar entre colecciones para mantener la disposición adecuada de la cuadrícula
+- Se agregaron controles de propiedad nula para evitar errores de consola durante las transiciones de imágenes (puede fallar)
+- Se mejoró la estrategia de almacenamiento en caché de imágenes con una limpieza adecuada en los cambios de colección
+- Se corrigieron los cálculos del diseño de la cuadrícula para mantener filas/columnas consistentes.
 </details>
 
+</details>
+
+
+
+he tratado de optimizar la carga de imágenes y el manejo del diseño de GridView
 
 # Nostalgia-Grid theme for Pegasus
 - La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.

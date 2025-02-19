@@ -1,19 +1,3 @@
-// Pegasus Frontend - Nostalgia Grid
-// Copyright (C) 2017  Gonzalo Abbate
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.12
@@ -23,6 +7,7 @@ import QtMultimedia 5.15
 FocusScope {
     id: root
     focus: true
+
     width: parent.width
     height: parent.height
 
@@ -229,9 +214,13 @@ FocusScope {
                 GridView {
                     id: gameGridView
                     anchors.fill: parent
-                    property bool isHorizontalMode: false
-                    property int columns: isHorizontalMode ? 4 : 6
-                    property int rows: isHorizontalMode ? 4 : 3
+
+                    property bool initialLayoutSet: false
+                    property bool firstImageIsHorizontal: false
+
+                    property int columns: firstImageIsHorizontal ? 4 : 6
+                    property int rows: firstImageIsHorizontal ? 4 : 3
+
                     cellWidth: width / columns
                     cellHeight: height / rows
                     focus: root.gridViewFocused
@@ -252,6 +241,11 @@ FocusScope {
                             duration: 200
                             easing.type: Easing.OutQuad
                         }
+                    }
+
+                    onModelChanged: {
+                        initialLayoutSet = false
+                        firstImageIsHorizontal = false
                     }
 
                     delegate: Item {
@@ -276,45 +270,55 @@ FocusScope {
 
                         Item {
                             id: imageContainer
-                            property real zoomScale: gameGridView.currentIndex === index && root.gridViewFocused ?
-                            (boxFront.sourceSize.width > boxFront.sourceSize.height ? 1.3 : 1.15) : 1.0
 
-                            width: parent.width * zoomScale
-                            height: parent.height * zoomScale
+                            property real zoomScale: {
+                                if (gameGridView.currentIndex === index && root.gridViewFocused && boxFront && boxFront.sourceSize) {
+                                    return (boxFront.sourceSize.width > boxFront.sourceSize.height ? 1.3 : 1.15)
+                                }
+                                return 1.0
+                            }
+
+                            width: parent ? parent.width * zoomScale : 0
+                            height: parent ? parent.height * zoomScale : 0
 
                             x: {
-                                if (gameGridView.currentIndex === index && root.gridViewFocused) {
-                                    var extraWidth = width - parent.width
-                                    var column = index % gameGridView.columns
+                                if (!parent || !gameGridView) return 0
 
-                                    if (column === 0) {
-                                        return 0
-                                    } else if (column === gameGridView.columns - 1) {
-                                        return -extraWidth
+                                    if (gameGridView.currentIndex === index && root.gridViewFocused) {
+                                        var extraWidth = width - parent.width
+                                        var column = index % (gameGridView.columns || 1)
+
+                                        if (column === 0) {
+                                            return 0
+                                        } else if (column === (gameGridView.columns - 1)) {
+                                            return -extraWidth
+                                        }
+                                        return -extraWidth / 2
                                     }
-                                    return -extraWidth / 2
-                                }
-                                return 0
+                                    return 0
                             }
 
                             y: {
-                                if (gameGridView.currentIndex === index && root.gridViewFocused) {
-                                    var extraHeight = height - parent.height
-                                    var row = Math.floor(index / gameGridView.columns)
-                                    var totalRows = Math.ceil(gameGridView.count / gameGridView.columns)
-                                    var visibleRows = Math.floor(gameGridView.height / gameGridView.cellHeight)
-                                    var itemY = row * gameGridView.cellHeight
-                                    var viewportTop = gameGridView.contentY
-                                    var viewportBottom = viewportTop + gameGridView.height
-                                    if (itemY - viewportTop < gameGridView.cellHeight) {
-                                        return 0
+                                if (!parent || !gameGridView) return 0
+
+                                    if (gameGridView.currentIndex === index && root.gridViewFocused) {
+                                        var extraHeight = height - parent.height
+                                        var row = Math.floor(index / (gameGridView.columns || 1))
+                                        var totalRows = Math.ceil((gameGridView.count || 0) / (gameGridView.columns || 1))
+                                        var visibleRows = Math.floor((gameGridView.height || 0) / (gameGridView.cellHeight || 1))
+                                        var itemY = row * (gameGridView.cellHeight || 0)
+                                        var viewportTop = gameGridView.contentY || 0
+                                        var viewportBottom = viewportTop + (gameGridView.height || 0)
+
+                                        if (itemY - viewportTop < (gameGridView.cellHeight || 0)) {
+                                            return 0
+                                        }
+                                        else if (viewportBottom - itemY < (gameGridView.cellHeight || 0) * 2) {
+                                            return -extraHeight
+                                        }
+                                        return -extraHeight / 2
                                     }
-                                    else if (viewportBottom - itemY < gameGridView.cellHeight * 2) {
-                                        return -extraHeight
-                                    }
-                                    return -extraHeight / 2
-                                }
-                                return 0
+                                    return 0
                             }
 
                             Behavior on x {
@@ -345,6 +349,7 @@ FocusScope {
                                 }
                             }
 
+
                             Image {
                                 id: boxFront
                                 anchors.fill: parent
@@ -352,13 +357,37 @@ FocusScope {
                                 fillMode: Image.Stretch
                                 visible: status === Image.Ready
                                 asynchronous: true
-                                onStatusChanged: {
-                                    if (status === Image.Ready && gameGridView.currentIndex === index) {
-                                        gameGridView.isHorizontalMode = sourceSize.width > sourceSize.height
+
+                                cache: true
+
+                                Component.onDestruction: {
+                                    if (source != "") {
+                                        source = ""
                                     }
                                 }
 
-                                layer.enabled: gameGridView.currentIndex === index && root.gridViewFocused
+                                onStatusChanged: {
+                                    if (status === Image.Ready && sourceSize) {
+                                        var isHorizontal = sourceSize.width > sourceSize.height
+
+                                        if (!gameGridView.initialLayoutSet && index === 0) {
+                                            gameGridView.firstImageIsHorizontal = isHorizontal
+                                            gameGridView.initialLayoutSet = true
+                                        }
+
+                                        if (sourceSize) {
+                                            if (isHorizontal) {
+                                                sourceSize.width = 256
+                                                sourceSize.height = 187
+                                            } else {
+                                                sourceSize.width = 256
+                                                sourceSize.height = 350
+                                            }
+                                        }
+                                    }
+                                }
+
+                                layer.enabled: gameGridView.currentIndex === index && root.gridViewFocused && status === Image.Ready
                                 layer.effect: DropShadow {
                                     horizontalOffset: 5
                                     verticalOffset: 5
@@ -413,11 +442,10 @@ FocusScope {
                         gameGridView.currentGame = selectedGame ? selectedGame.title : "";
                         const currentCollectionShortName = collectionListView.currentShortName;
                         game = gameGridView.model.get(currentIndex);
-                        if (selectedGame && selectedGame.assets && selectedGame.assets.boxFront) {
-                            var img = new Image();
-                            img.source = selectedGame.assets.boxFront;
-                            isHorizontalMode = img.sourceSize.width > img.sourceSize.height;
-                        }
+                    }
+
+                    Component.onCompleted: {
+                        initialLayoutSet = false
                     }
 
                     Keys.onLeftPressed: {
@@ -436,7 +464,8 @@ FocusScope {
                                 showGameInfo = !showGameInfo;
                                 toDetails.play();
                                 gameInfoRect.forceActiveFocus();
-                            } else if (api.keys.isAccept(event)) {
+                            }
+                            else if (api.keys.isAccept(event)) {
                                 event.accepted = true;
                                 launchTimer.start();
                                 launchgame.play();
