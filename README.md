@@ -35,10 +35,6 @@
 
 </details>
 
-
-
-he tratado de optimizar la carga de imágenes y el manejo del diseño de GridView
-
 # Nostalgia-Grid theme for Pegasus
 - La interfaz de usuario está claramente inspirada en la experiencia visual y de navegación que ofrece Nintendo Switch para juegos clásicos de NES™, Super NES™ para exhibir su colección de juegos retro.
 
