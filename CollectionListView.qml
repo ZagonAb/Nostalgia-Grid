@@ -28,7 +28,7 @@ PathView {
 
         PathQuad {
             x: 30; y: collectionPathView.height
-            controlX: collectionPathView.width * 0.7 + 30;
+            controlX: collectionPathView.width * 0.8 + 30;
             controlY: collectionPathView.height * 0.5
         }
     }
@@ -36,7 +36,11 @@ PathView {
     delegate: Item {
         width: Math.min(collectionPathView.width * 0.65, 200)
         height: Math.min(collectionPathView.height * 0.12, 100)
-        scale: PathView.isCurrentItem ? 1.2 : 0.8
+        scale: {
+            if (PathView.isCurrentItem) return 1.2;
+            var distanceFromCenter = Math.abs(index - PathView.view.currentIndex);
+            return distanceFromCenter > 2 ? 0.6 : 0.8;
+        }
         opacity: PathView.isCurrentItem ? 1.0 : 0.5
 
         property bool isSelected: PathView.isCurrentItem
@@ -59,8 +63,8 @@ PathView {
             opacity: 1.0
             visible: status !== Image.Error
 
-            sourceSize.width: 256
-            sourceSize.height: 256
+            sourceSize.width: 512
+            sourceSize.height: 512
 
             layer.enabled: parent.isSelected
             layer.effect: DropShadow {
@@ -88,8 +92,8 @@ PathView {
             height: width / (sourceSize.width / sourceSize.height)
             visible: collectionImage.status === Image.Error
             mipmap: true
-            sourceSize.width: 256
-            sourceSize.height: 256
+            sourceSize.width: 512
+            sourceSize.height: 512
             opacity: 1.0
 
             layer.enabled: parent.isSelected
