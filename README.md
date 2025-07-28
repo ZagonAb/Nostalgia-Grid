@@ -2,7 +2,7 @@
 
 - Inspired by the visual and navigation experience that Nintendo Switch offers for classic games.
 
-🔔 **Notice:** The interface will be subject to future updates with the intention of improving the user experience.
+📢 No more updates for now, but if you have any suggestions, they're very welcome!
 
 # Screenshots
 ![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/fbf490cc451bc1bdb9a73ada75d1ed6ff131cdee/.meta/screenshots/screen0.png)
