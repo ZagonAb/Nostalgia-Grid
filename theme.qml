@@ -72,6 +72,7 @@ FocusScope {
                     onGameChanged: {
                         root.game = selectedGame;
                         root.currentGame = selectedGame;
+                        gameInfoRect.currentGame = selectedGame;
                     }
                 }
             }
@@ -102,6 +103,9 @@ FocusScope {
         isGameInfoVisible: gameInfoRect.visible
         showPagination: gameInfoRect.totalPages > 1
         totalPages: gameInfoRect.totalPages
+        currentFilter: gameGridView.currentFilter
+        hasFavorites: gameGridView.hasFavorites
+        hasHistory: gameGridView.hasHistory
     }
 
     Component.onCompleted: {
@@ -116,5 +120,12 @@ FocusScope {
                 }
             }
         });
+    }
+
+    Connections {
+        target: gameGridView
+        function onFilterChanged(newFilter) {
+            horizontalBar.currentFilter = newFilter;
+        }
     }
 }

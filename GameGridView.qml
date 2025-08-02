@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.12
+import SortFilterProxyModel 0.2
 import "utils.js" as Utils
 
 GridView {
@@ -13,7 +14,133 @@ GridView {
     property var currentGameData: null
     property bool initialLayoutSet: false
     property bool firstImageIsHorizontal: false
-    property int imageAspectRatio: 0 
+    property int imageAspectRatio: 0
+    property int currentFilter: 0
+    property bool hasFavorites: false
+    property bool hasHistory: false
+
+    signal favoriteToggled(var game, bool isFavorite)
+
+    property var sourceModel: collectionListView.model.get(collectionListView.currentIndex).games
+
+    function updateFilterAvailability() {
+        if (!model || !model.count) {
+            hasFavorites = false;
+            hasHistory = false;
+            return;
+        }
+
+        hasFavorites = false;
+        for (var i = 0; i < model.count; i++) {
+            var game = model.get(i);
+            if (game && game.favorite) {
+                hasFavorites = true;
+                break;
+            }
+        }
+
+        hasHistory = false;
+        for (var j = 0; j < model.count; j++) {
+            game = model.get(j);
+            if (game && game.lastPlayed && game.lastPlayed.getTime() > 0) {
+                hasHistory = true;
+                break;
+            }
+        }
+
+        filterChanged(currentFilter);
+    }
+
+    function handleFavoriteToggle(game, isFavorite) {
+        var sourceUpdated = false;
+        for (var i = 0; i < sourceModel.count; i++) {
+            var sourceGame = sourceModel.get(i);
+            if (sourceGame && sourceGame.title === game.title) {
+                sourceGame.favorite = isFavorite;
+                sourceUpdated = true;
+
+                if (sourceModel.dataChanged) {
+                    sourceModel.dataChanged(sourceModel.index(i, 0), sourceModel.index(i, 0));
+                }
+                break;
+            }
+        }
+
+        if (currentFilter === 1) {
+            filterProxyModel.invalidate();
+
+            var hasFavs = false;
+            for (var j = 0; j < filterProxyModel.count; j++) {
+                if (filterProxyModel.get(j).favorite) {
+                    hasFavs = true;
+                    break;
+                }
+            }
+
+            if (!hasFavs) {
+                currentFilter = 0;
+                model = sourceModel;
+            }
+        }
+
+        updateFilterAvailability();
+
+        if (currentIndex >= model.count) {
+            currentIndex = model.count > 0 ? model.count - 1 : 0;
+        }
+
+        if (model.count > 0) {
+            currentGameData = model.get(currentIndex);
+            gameChanged(currentGameData);
+        } else {
+            currentGameData = null;
+            gameChanged(null);
+        }
+    }
+
+    onCurrentFilterChanged: {
+        if (currentFilter === 0) {
+            model = sourceModel;
+        } else {
+            filterProxyModel.sourceModel = sourceModel;
+            model = filterProxyModel;
+        }
+        currentIndex = 0;
+        positionViewAtIndex(0, GridView.Contain);
+        updateFilterAvailability();
+    }
+
+    property alias proxyModel: filterProxyModel
+
+    signal filterChanged(int newFilter)
+
+    SortFilterProxyModel {
+        id: filterProxyModel
+        sourceModel: gameGridView.sourceModel
+        filters: [
+            ValueFilter {
+                id: favoriteFilter
+                enabled: currentFilter === 1
+                roleName: "favorite"
+                value: true
+            },
+            ExpressionFilter {
+                id: lastPlayedFilter
+                enabled: currentFilter === 2
+                expression: {
+                    if (!modelData) return false;
+                    return modelData.lastPlayed && modelData.lastPlayed.getTime() > 0;
+                }
+            }
+        ]
+        sorters: [
+            RoleSorter {
+                enabled: currentFilter === 2
+                roleName: "lastPlayed"
+                sortOrder: Qt.DescendingOrder
+            }
+        ]
+    }
 
     property int columns: {
         if (imageAspectRatio === 1) return 4;
@@ -72,32 +199,10 @@ GridView {
                 }
             }
         }
+
+        updateFilterAvailability();
     }
 
-    function getCircularVerticalIndex(currentIdx, direction) {
-        if (!model || model.count === 0) return currentIdx;
-        
-        var currentRow = Math.floor(currentIdx / columns);
-        var totalRows = Math.ceil(model.count / columns);
-        
-        if (direction === "up") {
-            if (currentRow === 0) {
-                return model.count - 1;
-            } else {
-                var newIndex = currentIdx - columns;
-                return newIndex >= 0 ? newIndex : currentIdx;
-            }
-        } else if (direction === "down") {
-            if (currentRow === totalRows - 1) {
-                return 0;
-            } else {
-                var newIndex = currentIdx + columns;
-                return newIndex < model.count ? newIndex : currentIdx;
-            }
-        }
-        
-        return currentIdx;
-    }
 
     delegate: Item {
         id: gameItem
@@ -264,6 +369,26 @@ GridView {
                 }
             }
 
+            Item {
+                id: favoriteBadge
+                width: parent.width * 0.34
+                height: width
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                visible: Boolean(model && model.favorite) && boxFront.visible
+
+                Image {
+                    id: favoriteIcon
+                    source: Boolean(model && model.favorite) ? "assets/icons/fav.png" : ""
+                    width: parent.width
+                    height: parent.height
+                    anchors.centerIn: parent
+                    visible: Boolean(model && model.favorite)
+                    mipmap: true
+                    fillMode: Image.PreserveAspectFit
+                }
+            }
+
             Rectangle {
                 id: rectangleCurrentIndex
                 anchors.fill: parent
@@ -285,7 +410,7 @@ GridView {
                 id: titleBackground
                 anchors.fill: parent
                 color: "#1a1a1a"
-                visible: !boxFront.visible && !loadingSpinner.visible 
+                visible: !boxFront.visible && !loadingSpinner.visible
 
                 Text {
                     id: titleText
@@ -321,15 +446,51 @@ GridView {
         }
     }
 
+    function getCircularVerticalIndex(currentIdx, direction) {
+        if (!model || model.count === 0) return currentIdx;
+
+        var currentRow = Math.floor(currentIdx / columns);
+        var totalRows = Math.ceil(model.count / columns);
+
+        if (direction === "up") {
+            if (currentRow === 0) {
+                return model.count - 1;
+            } else {
+                var newIndex = currentIdx - columns;
+                return newIndex >= 0 ? newIndex : currentIdx;
+            }
+        } else if (direction === "down") {
+            if (currentRow === totalRows - 1) {
+                return 0;
+            } else {
+                var newIndex = currentIdx + columns;
+                return newIndex < model.count ? newIndex : currentIdx;
+            }
+        }
+
+        return currentIdx;
+    }
+
     onCurrentIndexChanged: {
-        sounds.naviSoundGrid.play();
-        currentGameData = model.get(currentIndex);
-        currentGame = currentGameData ? currentGameData.title : "";
-        gameChanged(currentGameData);
+        if (model && model.get && currentIndex >= 0 && currentIndex < count) {
+            sounds.naviSoundGrid.play();
+            currentGameData = model.get(currentIndex);
+
+            if (currentGameData && currentGameData.hasOwnProperty("title")) {
+                currentGame = currentGameData.title;
+            } else {
+                currentGame = "";
+            }
+
+            if (currentGameData) {
+                gameChanged(currentGameData);
+            }
+        }
     }
 
     Component.onCompleted: {
         initialLayoutSet = false
+        favoriteToggled.connect(handleFavoriteToggle)
     }
 
     Keys.onPressed: {
@@ -364,29 +525,22 @@ GridView {
                 }
                 event.accepted = true;
             }
+
             else if (api.keys.isNextPage(event)) {
-                if (collectionListView.currentIndex < collectionListView.count - 1) {
-                    collectionListView.currentIndex++;
+                if (collectionListView.count > 0) {
+                    currentFilter = 0;
+                    collectionListView.currentIndex = (collectionListView.currentIndex + 1) % collectionListView.count;
+                    sounds.toCollec.play();
                 }
                 event.accepted = true;
             }
             else if (api.keys.isPrevPage(event)) {
-                if (collectionListView.currentIndex > 0) {
-                    collectionListView.currentIndex--;
+                if (collectionListView.count > 0) {
+                    currentFilter = 0;
+                    collectionListView.currentIndex = (collectionListView.currentIndex - 1 + collectionListView.count) % collectionListView.count;
+                    sounds.toCollec.play();
                 }
                 event.accepted = true;
-            }
-            else if (api.keys.isPageDown(event)) {
-                if (collectionListView.currentIndex === 0) {
-                    collectionListView.currentIndex = collectionListView.count - 1;
-                    event.accepted = true;
-                }
-            }
-            else if (api.keys.isPageUp(event)) {
-                if (collectionListView.currentIndex === collectionListView.count - 1) {
-                    collectionListView.currentIndex = 0;
-                    event.accepted = true;
-                }
             }
             else if (api.keys.isFilters(event)) {
                 gameInfoRect.showGameInfo = !gameInfoRect.showGameInfo;
@@ -394,10 +548,52 @@ GridView {
                 gameInfoRect.forceActiveFocus();
                 event.accepted = true;
             }
+
+            else if (api.keys.isDetails(event)) {
+                if (!hasFavorites && !hasHistory) {
+                    sounds.errorSound.play();
+                    event.accepted = true;
+                    return;
+                }
+
+                var nextFilter = (currentFilter + 1) % 3;
+
+                while (true) {
+                    if (nextFilter === 0) break;
+                    if (nextFilter === 1 && hasFavorites) break;
+                    if (nextFilter === 2 && hasHistory) break;
+                    nextFilter = (nextFilter + 1) % 3;
+                }
+
+                currentFilter = nextFilter;
+                sounds.naviSoundGrid.play();
+
+                if (currentFilter === 0) {
+                    model = collectionListView.model.get(collectionListView.currentIndex).games;
+                } else {
+                    filterProxyModel.sourceModel = collectionListView.model.get(collectionListView.currentIndex).games;
+                    model = filterProxyModel;
+                }
+
+                currentIndex = -1;
+                currentIndex = 0;
+                if (model && model.get && model.count > 0) {
+                    currentGameData = model.get(0);
+                    gameChanged(currentGameData);
+                }
+                positionViewAtIndex(0, GridView.Contain);
+                event.accepted = true;
+            }
+
             else if (api.keys.isAccept(event)) {
                 event.accepted = true;
                 if (currentGameData) {
-                    game = currentGameData;
+                    var gameToLaunch = currentGameData;
+                    if (currentFilter !== 0) {
+                        var sourceIndex = filterProxyModel.mapToSource(filterProxyModel.index(currentIndex, 0));
+                        gameToLaunch = collectionListView.model.get(collectionListView.currentIndex).games.get(sourceIndex.row);
+                    }
+                    game = gameToLaunch;
                     launchTimer.start();
                     sounds.launchgame.play();
                 }

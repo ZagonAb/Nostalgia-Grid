@@ -147,6 +147,7 @@ PathView {
     onCurrentIndexChanged: {
         const selectedCollection = api.collections.get(currentIndex);
         if (selectedCollection && gameGridView) {
+            gameGridView.currentFilter = 0;
             gameGridView.model = selectedCollection.games;
             currentShortName = selectedCollection.shortName;
             currentCollectionName = selectedCollection.name;

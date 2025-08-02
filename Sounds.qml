@@ -9,46 +9,61 @@ Item {
     property alias toDetails: toDetails
     property alias infotogrid: infotogrid
     property alias launchgame: launchgame
+    property alias errorSound: errorSound
+    property alias detailsNextSound: detailsNextSound
 
     SoundEffect {
         id: toCollec
         source: "assets/sound/tocollec.wav"
-        volume: 2.5
+        volume: 1.5
     }
 
     SoundEffect {
         id: toGames
         source: "assets/sound/togame.wav"
-        volume: 2.5
+        volume: 1.0
     }
 
     SoundEffect {
         id: naviSoundLits
         source: "assets/sound/change-list.wav"
-        volume: 2.5
+        volume: 1.0
     }
 
     SoundEffect {
         id: naviSoundGrid
         source: "assets/sound/change-grid.wav"
-        volume: 2.5
+        volume: 1.0
     }
 
     SoundEffect {
         id: toDetails
         source: "assets/sound/details.wav"
-        volume: 2.5
+        volume: 1.0
     }
 
     SoundEffect {
         id: infotogrid
         source: "assets/sound/infotogrid.wav"
-        volume: 2.5
+        volume: 1.0
     }
 
     SoundEffect {
         id: launchgame
         source: "assets/sound/launch.wav"
-        volume: 2.5
+        volume: 1.0
     }
+
+    SoundEffect {
+        id: errorSound
+        source: "assets/sound/error.wav"
+        volume: 1.0
+    }
+
+    SoundEffect {
+        id: detailsNextSound
+        source: "assets/sound/details-next.wav"
+        volume: 1.0
+    }
+
 }

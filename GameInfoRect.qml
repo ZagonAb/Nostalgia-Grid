@@ -18,6 +18,9 @@ Rectangle {
     property int totalPages: 1
     property string paginatedDescription: ""
     property real linesPerPage: 0
+
+    signal favoriteStatusChanged()
+
     property var pageBreaks: []
 
     Rectangle {
@@ -127,6 +130,12 @@ Rectangle {
                     }
                     Text {
                         text: currentGame ? "Playing time: " + Utils.formatPlayTime(currentGame.playTime) : ""
+                        font.pixelSize: Math.max(12, gameInfoRect.width * 0.015)
+                        color: "#424242"
+                    }
+
+                    Text {
+                        text: currentGame ? "Favorite: " + (currentGame.favorite ? "Yes" : "No") : ""
                         font.pixelSize: Math.max(12, gameInfoRect.width * 0.015)
                         color: "#424242"
                     }
@@ -294,7 +303,25 @@ Rectangle {
             }
             else if (api.keys.isAccept(event)) {
                 event.accepted = true
-                navigatePages()
+                if (totalPages <= 1) {
+                    sounds.errorSound.play()
+                } else {
+                    sounds.detailsNextSound.play()
+                    navigatePages()
+                }
+            }
+            else if (api.keys.isDetails(event)) {
+                event.accepted = true;
+                if (currentGame) {
+                    var newFavoriteStatus = !currentGame.favorite;
+                    currentGame.favorite = newFavoriteStatus;
+                    sounds.naviSoundGrid.play();
+                    if (gameGridView && gameGridView.favoriteToggled) {
+                        gameGridView.favoriteToggled(currentGame, newFavoriteStatus);
+                    }
+
+                    favoriteStatusChanged();
+                }
             }
             else if (api.keys.isNextPage(event) && currentPage < totalPages) {
                 event.accepted = true
