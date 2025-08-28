@@ -525,7 +525,9 @@ GridView {
                 }
                 event.accepted = true;
             }
-
+            else if (api.keys.isCancel(event)) {
+                sounds.infotogrid.play();
+            }
             else if (api.keys.isNextPage(event)) {
                 if (collectionListView.count > 0) {
                     currentFilter = 0;
@@ -548,7 +550,6 @@ GridView {
                 gameInfoRect.forceActiveFocus();
                 event.accepted = true;
             }
-
             else if (api.keys.isDetails(event)) {
                 if (!hasFavorites && !hasHistory) {
                     sounds.errorSound.play();
@@ -584,7 +585,6 @@ GridView {
                 positionViewAtIndex(0, GridView.Contain);
                 event.accepted = true;
             }
-
             else if (api.keys.isAccept(event)) {
                 event.accepted = true;
                 if (currentGameData) {
