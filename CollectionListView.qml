@@ -19,6 +19,8 @@ PathView {
     property var gameGridView
     focus: false
 
+    signal shortNameChanged(string shortName)
+
     pathItemCount: 7
     preferredHighlightBegin: 0.5
     preferredHighlightEnd: 0.5
@@ -114,28 +116,35 @@ PathView {
         }
     }
 
-    Component.onCompleted: {
-        if (model && model.count > 0) {
-            const selectedCollection = api.collections.get(0)
-            if (selectedCollection && gameGridView) {
-                gameGridView.model = selectedCollection.games
+    function updateCurrentCollection() {
+        if (model && model.count > 0 && currentIndex >= 0) {
+            const selectedCollection = api.collections.get(currentIndex)
+            if (selectedCollection) {
                 currentShortName = selectedCollection.shortName
                 currentCollectionName = selectedCollection.name
-                indexToPosition = 0
+                indexToPosition = currentIndex
+
+                shortNameChanged(currentShortName)
+
+                if (gameGridView) {
+                    gameGridView.model = selectedCollection.games
+                }
             }
+        }
+    }
+
+    Component.onCompleted: {
+        if (model && model.count > 0) {
+            currentIndex = 0
+            updateCurrentCollection()
         }
     }
 
     onModelChanged: {
         if (model && model.count > 0) {
             Qt.callLater(function() {
-                const selectedCollection = api.collections.get(0)
-                if (selectedCollection && gameGridView) {
-                    gameGridView.model = selectedCollection.games
-                    currentShortName = selectedCollection.shortName
-                    currentCollectionName = selectedCollection.name
-                    indexToPosition = 0
-                }
+                currentIndex = 0
+                updateCurrentCollection()
             })
         }
     }
@@ -156,6 +165,8 @@ PathView {
             gameGridView.currentIndex = 0;
             gameGridView.positionViewAtIndex(0, GridView.Contain);
             api.memory.set('lastCollectionIndex', currentIndex);
+
+            shortNameChanged(currentShortName);
         }
     }
 }

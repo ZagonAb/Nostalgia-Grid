@@ -17,6 +17,10 @@ FocusScope {
     property var game: null
     property alias sounds: sounds
 
+    ColorMapping {
+        id: colorMapping
+    }
+
     Timer {
         id: launchTimer
         interval: 500
@@ -41,7 +45,22 @@ FocusScope {
             id: collectionBar
             Layout.preferredWidth: parent.width * 0.20
             Layout.fillHeight: true
-            color: "#f62507"
+
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: - 0.2
+                    color: "#CC000000"
+                }
+                GradientStop {
+                    position: 1.0
+                    color: "#f62507"
+
+                    Behavior on color {
+                        ColorAnimation { duration: 300; easing.type: Easing.OutQuad }
+                    }
+                }
+            }
 
             CollectionListView {
                 id: collectionListView
@@ -49,6 +68,11 @@ FocusScope {
                 anchors.margins: 20
                 sounds: root.sounds
                 gameGridView: gameGridView
+
+                onShortNameChanged: {
+
+                    collectionBar.gradient.stops[1].color = colorMapping.getColor(shortName);
+                }
             }
         }
 
@@ -117,6 +141,10 @@ FocusScope {
                 if (gameGridView.model && gameGridView.model.count > 0) {
                     gameGridView.currentIndex = 0;
                     gameGridView.positionViewAtIndex(0, GridView.Contain);
+                }
+
+                if (collectionListView.currentShortName) {
+                    collectionBar.gradient.stops[1].color = colorMapping.getColor(collectionListView.currentShortName);
                 }
             }
         });
