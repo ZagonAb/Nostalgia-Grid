@@ -25,6 +25,12 @@ PathView {
     preferredHighlightBegin: 0.5
     preferredHighlightEnd: 0.5
 
+    property real swipeStartY: 0
+    property real swipeStartX: 0
+    property real swipeThreshold: 50
+    property bool isSwiping: false
+    property bool isTouching: false
+
     path: Path {
         startX: 30; startY: 0
 
@@ -32,6 +38,70 @@ PathView {
             x: 30; y: collectionPathView.height
             controlX: collectionPathView.width * 0.8 + 30;
             controlY: collectionPathView.height * 0.5
+        }
+    }
+
+    MouseArea {
+        id: pathViewMouseArea
+        anchors.fill: parent
+        z: -1
+
+        onPressed: {
+            console.log("=== PATHVIEW PRESSED ===")
+            collectionPathView.swipeStartY = mouse.y
+            collectionPathView.swipeStartX = mouse.x
+            collectionPathView.isSwiping = false
+            collectionPathView.isTouching = true
+            console.log("Swipe start at:", mouse.x, mouse.y)
+        }
+
+        onPositionChanged: {
+            if (!collectionPathView.isTouching) return
+
+                var deltaY = mouse.y - collectionPathView.swipeStartY
+                var deltaX = mouse.x - collectionPathView.swipeStartX
+
+                if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+                    collectionPathView.isSwiping = true
+                    console.log("Swiping - deltaY:", deltaY)
+                }
+        }
+
+        onReleased: {
+            console.log("=== PATHVIEW RELEASED ===")
+            console.log("isSwiping:", collectionPathView.isSwiping)
+
+            if (collectionPathView.isSwiping) {
+                var deltaY = mouse.y - collectionPathView.swipeStartY
+                console.log("Swipe deltaY:", deltaY, "threshold:", collectionPathView.swipeThreshold)
+
+                if (Math.abs(deltaY) > collectionPathView.swipeThreshold) {
+                    if (deltaY > 0) {
+                        console.log("SWIPE DOWN - Previous collection")
+                        if (collectionPathView.currentIndex > 0) {
+                            collectionPathView.currentIndex--
+                            console.log("New index:", collectionPathView.currentIndex)
+                        }
+                    } else {
+                        console.log("SWIPE UP - Next collection")
+                        if (collectionPathView.currentIndex < collectionPathView.count - 1) {
+                            collectionPathView.currentIndex++
+                            console.log("New index:", collectionPathView.currentIndex)
+                        }
+                    }
+                } else {
+                    console.log("Swipe too short, ignoring")
+                }
+            }
+
+            collectionPathView.isSwiping = false
+            collectionPathView.isTouching = false
+        }
+
+        onCanceled: {
+            console.log("PathView mouse area canceled")
+            collectionPathView.isSwiping = false
+            collectionPathView.isTouching = false
         }
     }
 
@@ -54,13 +124,98 @@ PathView {
             }
         }
 
+        MouseArea {
+            id: collectionMouseArea
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+
+            property bool isLongPress: false
+            property bool isClick: false
+            property real pressX: 0
+            property real pressY: 0
+
+            onPressed: {
+                console.log("=== COLLECTION ITEM PRESSED ===")
+                console.log("Index:", index)
+                console.log("Collection:", model ? model.shortName : "unknown")
+                console.log("Current index:", collectionPathView.currentIndex)
+
+                isLongPress = false
+                isClick = true
+                pressX = mouse.x
+                pressY = mouse.y
+
+                collectionLongPressTimer.restart()
+            }
+
+            onPositionChanged: {
+                if (Math.abs(mouse.x - pressX) > 10 || Math.abs(mouse.y - pressY) > 10) {
+                    isClick = false
+                    collectionLongPressTimer.stop()
+
+                    if (!collectionPathView.isSwiping) {
+                        collectionPathView.swipeStartY = mouse.y
+                        collectionPathView.swipeStartX = mouse.x
+                        collectionPathView.isSwiping = true
+                    }
+                }
+            }
+
+            onReleased: {
+                console.log("=== COLLECTION ITEM RELEASED ===")
+                console.log("isClick:", isClick)
+                console.log("isLongPress:", isLongPress)
+
+                collectionLongPressTimer.stop()
+
+                if (isLongPress) {
+                    console.log("Long press was handled, ignoring release")
+                    return
+                }
+
+                if (!isClick) {
+                    console.log("Not a click (probably swipe), ignoring")
+                    return
+                }
+
+                if (collectionPathView.currentIndex !== index) {
+                    console.log("Selecting collection:", model.shortName)
+                    collectionPathView.currentIndex = index
+
+                    if (sounds && sounds.naviSoundLits) {
+                        sounds.naviSoundLits.play()
+                    }
+                } else {
+                    console.log("Collection already selected")
+                }
+            }
+
+            onCanceled: {
+                console.log("Collection mouse area canceled")
+                collectionLongPressTimer.stop()
+                isLongPress = false
+                isClick = false
+            }
+
+            Timer {
+                id: collectionLongPressTimer
+                interval: 500
+                repeat: false
+                onTriggered: {
+                    console.log("Collection long press detected")
+                    parent.isLongPress = true
+                    parent.isClick = false
+                }
+            }
+        }
+
         Image {
             id: collectionImage
             source: "assets/systems/" + model.shortName + ".png"
             anchors.centerIn: parent
             fillMode: Image.PreserveAspectFit
             mipmap: true
-            width: Math.min(collectionListView.width * 0.75, collectionListView.height * 1.8)
+            width: Math.min(collectionPathView.width * 0.75, collectionPathView.height * 1.8)
             height: width / (sourceSize.width / sourceSize.height)
             opacity: 1.0
             visible: status !== Image.Error
@@ -135,17 +290,24 @@ PathView {
     }
 
     Component.onCompleted: {
+        console.log("=== COLLECTIONLISTVIEW INIT ===")
+        console.log("Model count:", model ? model.count : 0)
+
         if (model && model.count > 0) {
             currentIndex = 0
             updateCurrentCollection()
+            console.log("Initial collection set to index 0")
         }
     }
 
     onModelChanged: {
+        console.log("Collection model changed, count:", model ? model.count : 0)
+
         if (model && model.count > 0) {
             Qt.callLater(function() {
                 currentIndex = 0
                 updateCurrentCollection()
+                console.log("Collection reset to index 0 after model change")
             })
         }
     }
@@ -155,15 +317,24 @@ PathView {
     }
 
     onCurrentIndexChanged: {
+        console.log("=== COLLECTION INDEX CHANGED ===")
+        console.log("New index:", currentIndex)
+
         const selectedCollection = api.collections.get(currentIndex);
         if (selectedCollection && gameGridView) {
             currentShortName = selectedCollection.shortName;
             currentCollectionName = selectedCollection.name;
             indexToPosition = currentIndex;
+
+            console.log("Selected collection:", currentShortName, "-", currentCollectionName)
+
             gameGridView.currentFilter = 0;
             gameGridView.sourceModel = selectedCollection.games;
             gameGridView.model = selectedCollection.games;
-            sounds.naviSoundLits.play();
+
+            if (sounds && sounds.naviSoundLits) {
+                sounds.naviSoundLits.play();
+            }
             gameGridView.currentIndex = 0;
             gameGridView.positionViewAtIndex(0, GridView.Contain);
             api.memory.set('lastCollectionIndex', currentIndex);
