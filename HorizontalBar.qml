@@ -626,6 +626,9 @@ Item {
                 root.isCollapsed = !root.isCollapsed;
                 console.log("New isCollapsed:", root.isCollapsed)
                 api.memory.set('horizontalBarCollapsed', root.isCollapsed);
+                if (sounds && sounds.naviSoundGrid) {
+                    sounds.naviSoundGrid.play();
+                }
             }
             onCanceled: console.log("MOUSE CANCELED: Toggle button")
         }

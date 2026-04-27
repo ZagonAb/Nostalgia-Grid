@@ -445,7 +445,7 @@ GridView {
                 visible: gameItem.isCurrent && boxFront.visible
                 gradient: Gradient {
                     GradientStop { position: 0.6; color: "transparent" }
-                    GradientStop { position: 1.0; color: "#E8000000" }
+                    GradientStop { position: 1.0; color: "black" }
                 }
             }
 
