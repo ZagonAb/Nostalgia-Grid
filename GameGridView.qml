@@ -382,15 +382,20 @@ GridView {
             Image {
                 id: boxFront
                 anchors.fill: parent
-                source: model ? (model.assets.boxFront || "") : ""
+                source: {
+                    if (!model) return "assets/default.png"
+                        return model.assets.boxFront ? model.assets.boxFront : "assets/default.png"
+                }
                 fillMode: Image.Stretch
                 visible: source !== "" && status === Image.Ready
                 asynchronous: true
                 cache: true
-                smooth: false
+                mipmap: true
 
                 onStatusChanged: {
-                    if (status === Image.Ready && !gameGridView.initialLayoutSet && index === 0) {
+                    if (status === Image.Error && source !== "assets/default.png") {
+                        boxFront.source = "assets/default.png"
+                    } else if (status === Image.Ready && !gameGridView.initialLayoutSet && index === 0) {
                         if (implicitWidth > 0 && implicitHeight > 0) {
                             var ratio = implicitWidth / implicitHeight;
 
