@@ -16,7 +16,7 @@ QtObject {
         "amigacd32": "#7a3625",
         "amigacdtv": "#ba6047",
         "amstradcpc": "#313868",
-        "android": "#3d3d3c",
+        "android": "#a4c639",
         "androidgames": "#39331d",
         "apfm1000": "#797970",
         "apple2": "#7f89a2",
