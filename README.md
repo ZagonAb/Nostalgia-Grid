@@ -5,10 +5,9 @@
 📢 There will be improvements in optimization and compatibility with touchscreens for Android.
 
 # Screenshots
-![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/7fd9ccbda9c886befa49b9fec79456bf4dd290b0/.meta/screenshots/screen0.png)
-![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/7fd9ccbda9c886befa49b9fec79456bf4dd290b0/.meta/screenshots/screen1.png)
-![screenshot2](https://github.com/ZagonAb/Nostalgia-Grid/blob/7fd9ccbda9c886befa49b9fec79456bf4dd290b0/.meta/screenshots/screen2.png)
-![screenshot3](https://github.com/ZagonAb/Nostalgia-Grid/blob/7fd9ccbda9c886befa49b9fec79456bf4dd290b0/.meta/screenshots/screen3.png)
+![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/b77c15fcd5f43f9ec1d073262692170b823d46a3/.meta/screenshots/screen0.png)
+![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/b77c15fcd5f43f9ec1d073262692170b823d46a3/.meta/screenshots/screen1.png)
+
 
 # Licencia
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Licencia Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"></a>
