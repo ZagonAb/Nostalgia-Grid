@@ -127,6 +127,7 @@ PathView {
                 shortNameChanged(currentShortName)
 
                 if (gameGridView) {
+                    gameGridView.sourceModel = selectedCollection.games
                     gameGridView.model = selectedCollection.games
                 }
             }
@@ -156,11 +157,12 @@ PathView {
     onCurrentIndexChanged: {
         const selectedCollection = api.collections.get(currentIndex);
         if (selectedCollection && gameGridView) {
-            gameGridView.currentFilter = 0;
-            gameGridView.model = selectedCollection.games;
             currentShortName = selectedCollection.shortName;
             currentCollectionName = selectedCollection.name;
             indexToPosition = currentIndex;
+            gameGridView.currentFilter = 0;
+            gameGridView.sourceModel = selectedCollection.games;
+            gameGridView.model = selectedCollection.games;
             sounds.naviSoundLits.play();
             gameGridView.currentIndex = 0;
             gameGridView.positionViewAtIndex(0, GridView.Contain);

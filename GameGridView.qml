@@ -13,15 +13,27 @@ GridView {
     property var gameInfoRect
     property var currentGameData: null
     property bool initialLayoutSet: false
-    property bool firstImageIsHorizontal: false
     property int imageAspectRatio: 0
     property int currentFilter: 0
     property bool hasFavorites: false
     property bool hasHistory: false
 
     signal favoriteToggled(var game, bool isFavorite)
+    signal filterChanged(int newFilter)
 
-    property var sourceModel: collectionListView.model.get(collectionListView.currentIndex).games
+    property var sourceModel: null
+    property int lastClickedIndex: -1
+    property var lastClickTime: 0
+
+    Timer {
+        id: doubleClickTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            console.log("Double click timer expired, resetting lastClickedIndex")
+            gameGridView.lastClickedIndex = -1
+        }
+    }
 
     function updateFilterAvailability() {
         if (!model || !model.count) {
@@ -30,34 +42,30 @@ GridView {
             return;
         }
 
-        hasFavorites = false;
-        for (var i = 0; i < model.count; i++) {
+        var favFound = false;
+        var histFound = false;
+
+        for (var i = 0; i < model.count && (!favFound || !histFound); i++) {
             var game = model.get(i);
-            if (game && game.favorite) {
-                hasFavorites = true;
-                break;
+            if (game) {
+                if (!favFound && game.favorite) favFound = true;
+                if (!histFound && game.lastPlayed && game.lastPlayed.getTime() > 0) histFound = true;
             }
         }
 
-        hasHistory = false;
-        for (var j = 0; j < model.count; j++) {
-            game = model.get(j);
-            if (game && game.lastPlayed && game.lastPlayed.getTime() > 0) {
-                hasHistory = true;
-                break;
-            }
-        }
+        hasFavorites = favFound;
+        hasHistory = histFound;
 
         filterChanged(currentFilter);
     }
 
     function handleFavoriteToggle(game, isFavorite) {
-        var sourceUpdated = false;
+        if (!sourceModel) return;
+
         for (var i = 0; i < sourceModel.count; i++) {
             var sourceGame = sourceModel.get(i);
             if (sourceGame && sourceGame.title === game.title) {
                 sourceGame.favorite = isFavorite;
-                sourceUpdated = true;
 
                 if (sourceModel.dataChanged) {
                     sourceModel.dataChanged(sourceModel.index(i, 0), sourceModel.index(i, 0));
@@ -68,25 +76,12 @@ GridView {
 
         if (currentFilter === 1) {
             filterProxyModel.invalidate();
-
-            var hasFavs = false;
-            for (var j = 0; j < filterProxyModel.count; j++) {
-                if (filterProxyModel.get(j).favorite) {
-                    hasFavs = true;
-                    break;
-                }
-            }
-
-            if (!hasFavs) {
-                currentFilter = 0;
-                model = sourceModel;
-            }
         }
 
         updateFilterAvailability();
 
-        if (currentIndex >= model.count) {
-            currentIndex = model.count > 0 ? model.count - 1 : 0;
+        if (currentIndex >= model.count && model.count > 0) {
+            currentIndex = model.count - 1;
         }
 
         if (model.count > 0) {
@@ -99,20 +94,12 @@ GridView {
     }
 
     onCurrentFilterChanged: {
-        if (currentFilter === 0) {
-            model = sourceModel;
-        } else {
-            filterProxyModel.sourceModel = sourceModel;
-            model = filterProxyModel;
-        }
+        if (!sourceModel) return;
+        model = currentFilter === 0 ? sourceModel : filterProxyModel;
         currentIndex = 0;
         positionViewAtIndex(0, GridView.Contain);
         updateFilterAvailability();
     }
-
-    property alias proxyModel: filterProxyModel
-
-    signal filterChanged(int newFilter)
 
     SortFilterProxyModel {
         id: filterProxyModel
@@ -143,22 +130,44 @@ GridView {
     }
 
     property int columns: {
-        if (imageAspectRatio === 1) return 4;
-        else if (imageAspectRatio === 2) return 6;
-        else return 4;
+        switch(imageAspectRatio) {
+            case 1: return 4;
+            case 2: return 6;
+            default: return 4;
+        }
     }
 
     property int rows: {
-        if (imageAspectRatio === 1) return 4;
-        else if (imageAspectRatio === 2) return 3;
-        else return 3;
+        switch(imageAspectRatio) {
+            case 1: return 4;
+            case 2: return 3;
+            default: return 3;
+        }
     }
 
     property string currentGame: ""
-    property real targetCellWidth: width / columns
-    property real targetCellHeight: height / rows
     property string spinnerSource: "assets/icons/spinner.svg"
     property real squareThreshold: 0.15
+    property real gridTransitionOpacity: 1.0
+
+    onImageAspectRatioChanged: {
+        gridTransitionOpacity = 0.0;
+        fadeInTimer.restart();
+    }
+
+    Timer {
+        id: fadeInTimer
+        interval: 80
+        repeat: false
+        onTriggered: gridTransitionOpacity = 1.0
+    }
+
+    Behavior on gridTransitionOpacity {
+        NumberAnimation {
+            duration: 120
+            easing.type: Easing.InOutQuad
+        }
+    }
 
     signal gameChanged(var selectedGame)
     clip: false
@@ -167,35 +176,38 @@ GridView {
     cellWidth: width / columns
     cellHeight: height / rows
 
-    Behavior on cellWidth {
-        NumberAnimation {
-            duration: 200
-            easing.type: Easing.OutQuad
-        }
-    }
-
-    Behavior on cellHeight {
-        NumberAnimation {
-            duration: 200
-            easing.type: Easing.OutQuad
-        }
-    }
-
     onModelChanged: {
         currentIndex = 0
         initialLayoutSet = false
-        firstImageIsHorizontal = false
+        gameGridView.lastClickedIndex = -1
+
+        if (collectionListView && collectionListView.currentShortName) {
+            var savedRatio = api.memory.get('lastImageAspectRatio_' + collectionListView.currentShortName);
+            if (savedRatio !== undefined && savedRatio !== null) {
+                imageAspectRatio = savedRatio;
+                initialLayoutSet = true;
+            } else {
+                imageAspectRatio = 0;
+            }
+        } else {
+            imageAspectRatio = 0;
+        }
 
         if (model && model.count > 0) {
             var lastGameTitle = api.memory.get('lastGameTitle') || "";
             if (lastGameTitle !== "") {
-                for (var i = 0; i < model.count; i++) {
+                var found = false;
+                for (var i = 0; i < Math.min(model.count, 100); i++) {
                     var game = model.get(i);
-                    if (game.title === lastGameTitle) {
+                    if (game && game.title === lastGameTitle) {
                         currentIndex = i;
                         positionViewAtIndex(i, GridView.Contain);
+                        found = true;
                         break;
                     }
+                }
+                if (!found) {
+                    currentIndex = 0;
                 }
             }
         }
@@ -203,38 +215,28 @@ GridView {
         updateFilterAvailability();
     }
 
-
     delegate: Item {
         id: gameItem
         width: gameGridView.cellWidth
         height: gameGridView.cellHeight
         z: gameGridView.currentIndex === index ? 100 : 1
 
-        Behavior on width {
-            NumberAnimation {
-                duration: 100
-                easing.type: Easing.OutQuad
-            }
-        }
+        opacity: gameGridView.gridTransitionOpacity
 
-        Behavior on height {
-            NumberAnimation {
-                duration: 100
-                easing.type: Easing.OutQuad
-            }
-        }
+        readonly property bool isCurrent: gameGridView.currentIndex === index
 
         Item {
             id: imageContainer
 
+            readonly property int column: index % gameGridView.columns
+            readonly property int row: Math.floor(index / gameGridView.columns)
+
             property real zoomScale: {
-                if (gameGridView.currentIndex === index && boxFront && boxFront.sourceSize) {
-                    if (gameGridView.imageAspectRatio === 1) {
-                        return 1.2;
-                    } else if (gameGridView.imageAspectRatio === 2) {
-                        return 1.10;
-                    } else {
-                        return 1.15;
+                if (gameItem.isCurrent && boxFront.status === Image.Ready) {
+                    switch(gameGridView.imageAspectRatio) {
+                        case 1: return 1.40;
+                        case 2: return 1.20;
+                        default: return 1.3;
                     }
                 }
                 return 1.0
@@ -244,128 +246,196 @@ GridView {
             height: parent ? parent.height * zoomScale : 0
 
             x: {
-                if (!parent || !gameGridView) return 0
-
-                    if (gameGridView.currentIndex === index) {
-                        var extraWidth = width - parent.width
-                        var column = index % (gameGridView.columns || 1)
-
-                        if (column === 0) {
-                            return 0
-                        } else if (column === (gameGridView.columns - 1)) {
-                            return -extraWidth
-                        }
-                        return -extraWidth / 2
-                    }
-                    return 0
+                if (!gameItem.isCurrent || !parent) return 0;
+                var extraWidth = width - parent.width;
+                if (column === 0) return 0;
+                if (column === gameGridView.columns - 1) return -extraWidth;
+                return -extraWidth / 2;
             }
 
             y: {
-                if (!parent || !gameGridView) return 0
+                if (!gameItem.isCurrent || !parent) return 0;
+                var extraHeight = height - parent.height;
+                var itemY = row * gameGridView.cellHeight;
+                var viewportTop = gameGridView.contentY;
+                var viewportBottom = viewportTop + gameGridView.height;
 
-                    if (gameGridView.currentIndex === index) {
-                        var extraHeight = height - parent.height
-                        var row = Math.floor(index / (gameGridView.columns || 1))
-                        var totalRows = Math.ceil((gameGridView.count || 0) / (gameGridView.columns || 1))
-                        var visibleRows = Math.floor((gameGridView.height || 0) / (gameGridView.cellHeight || 1))
-                        var itemY = row * (gameGridView.cellHeight || 0)
-                        var viewportTop = gameGridView.contentY || 0
-                        var viewportBottom = viewportTop + (gameGridView.height || 0)
-
-                        if (itemY - viewportTop < (gameGridView.cellHeight || 0)) {
-                            return 0
-                        }
-                        else if (viewportBottom - itemY < (gameGridView.cellHeight || 0) * 2) {
-                            return -extraHeight
-                        }
-                        return -extraHeight / 2
-                    }
-                    return 0
+                if (itemY - viewportTop < gameGridView.cellHeight) return 0;
+                if (viewportBottom - itemY < gameGridView.cellHeight * 2) return -extraHeight;
+                return -extraHeight / 2;
             }
 
             Behavior on x {
                 NumberAnimation {
-                    duration: 250
+                    duration: 120
                     easing.type: Easing.OutQuad
                 }
             }
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 250
+                    duration: 120
                     easing.type: Easing.OutQuad
                 }
             }
 
-            Behavior on width {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutQuad
-                }
-            }
+            MouseArea {
+                id: gameMouseArea
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
 
-            Behavior on height {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutQuad
+                property bool longPressTriggered: false
+                property bool isClick: false
+
+                onPressed: {
+                    console.log("=== GAME ITEM PRESSED ===")
+                    console.log("Index:", index)
+                    console.log("Current index:", gameGridView.currentIndex)
+                    console.log("Game title:", model ? model.title : "unknown")
+
+                    longPressTriggered = false
+                    isClick = true
+                    longPressTimer.restart()
+                }
+
+                onReleased: {
+                    console.log("=== GAME ITEM RELEASED ===")
+                    console.log("Long press triggered:", longPressTriggered)
+
+                    longPressTimer.stop()
+
+                    if (longPressTriggered) {
+                        console.log("Long press was triggered, ignoring release")
+                        return
+                    }
+
+                    if (!isClick) {
+                        console.log("Not a click, ignoring")
+                        return
+                    }
+
+                    console.log("Handling as click")
+                    handleGameClick()
+                }
+
+                onPositionChanged: {
+                    if (Math.abs(mouse.x - pressX) > 10 || Math.abs(mouse.y - pressY) > 10) {
+                        isClick = false
+                        longPressTimer.stop()
+                    }
+                }
+
+                onCanceled: {
+                    console.log("Mouse area canceled")
+                    longPressTimer.stop()
+                    longPressTriggered = false
+                    isClick = false
+                }
+
+                Timer {
+                    id: longPressTimer
+                    interval: 500
+                    repeat: false
+                    onTriggered: {
+                        console.log("=== LONG PRESS TRIGGERED ===")
+                        console.log("Index:", index)
+
+                        parent.longPressTriggered = true
+                        parent.isClick = false
+
+                        if (gameGridView.currentIndex !== index) {
+                            console.log("Selecting game first")
+                            gameGridView.currentIndex = index
+                            gameGridView.positionViewAtIndex(index, GridView.Contain)
+                        }
+
+                        if (gameGridView.gameInfoRect) {
+                            console.log("Opening GameInfoRect")
+                            gameGridView.gameInfoRect.currentGame = gameGridView.currentGameData
+                            gameGridView.gameInfoRect.showGameInfo = true
+                            gameGridView.gameInfoRect.forceActiveFocus()
+
+                            if (sounds && sounds.toDetails) {
+                                sounds.toDetails.play()
+                            }
+                        } else {
+                            console.log("ERROR: gameInfoRect not available")
+                        }
+                    }
+                }
+
+                function handleGameClick() {
+                    var currentTime = Date.now()
+
+                    if (gameGridView.lastClickedIndex === index &&
+                        (currentTime - gameGridView.lastClickTime) < 300) {
+                        console.log("DOUBLE CLICK DETECTED")
+                        doubleClickTimer.stop()
+                        gameGridView.lastClickedIndex = -1
+
+                        if (gameGridView.currentIndex === index && gameGridView.currentGameData) {
+                            console.log("Launching game:", gameGridView.currentGameData.title)
+                            var gameToLaunch = gameGridView.currentGameData
+                            if (sounds && sounds.launchgame) {
+                                sounds.launchgame.play()
+                            }
+                            if (collectionListView) {
+                                api.memory.set('lastCollectionIndex', collectionListView.currentIndex)
+                            }
+                            gameToLaunch.launch()
+                        }
+                        } else {
+                            console.log("SINGLE CLICK - Selecting game")
+
+                            gameGridView.lastClickedIndex = index
+                            gameGridView.lastClickTime = currentTime
+                            doubleClickTimer.restart()
+
+                            if (gameGridView.currentIndex !== index) {
+                                console.log("Changing selection to index:", index)
+                                gameGridView.currentIndex = index
+                                positionViewAtIndex(index, GridView.Contain)
+                            } else {
+                                console.log("Already selected, waiting for double click")
+                            }
+                        }
                 }
             }
 
             Image {
                 id: boxFront
                 anchors.fill: parent
-                source: model.assets.boxFront || ""
+                source: model ? (model.assets.boxFront || "") : ""
                 fillMode: Image.Stretch
-                visible: status === Image.Ready
+                visible: source !== "" && status === Image.Ready
                 asynchronous: true
                 cache: true
-
-                Component.onDestruction: {
-                    if (source != "") {
-                        source = ""
-                    }
-                }
+                smooth: false
 
                 onStatusChanged: {
-                    if (status === Image.Ready && sourceSize) {
-                        var ratio = sourceSize.width / sourceSize.height;
-                        var isSquare = Math.abs(1 - ratio) < gameGridView.squareThreshold;
-                        var isHorizontal = ratio > 1 + gameGridView.squareThreshold;
-                        var isVertical = ratio < 1 - gameGridView.squareThreshold;
+                    if (status === Image.Ready && !gameGridView.initialLayoutSet && index === 0) {
+                        if (implicitWidth > 0 && implicitHeight > 0) {
+                            var ratio = implicitWidth / implicitHeight;
 
-                        if (!gameGridView.initialLayoutSet && index === 0) {
-                            if (isHorizontal) {
-                                gameGridView.imageAspectRatio = 1;
-                            } else if (isVertical) {
-                                gameGridView.imageAspectRatio = 2;
+                            var newAspectRatio;
+
+                            if (Math.abs(1 - ratio) < gameGridView.squareThreshold) {
+                                newAspectRatio = 0;
+                            } else if (ratio > 1 + gameGridView.squareThreshold) {
+                                newAspectRatio = 1;
                             } else {
-                                gameGridView.imageAspectRatio = 3;
+                                newAspectRatio = 2;
+                            }
+
+                            if (newAspectRatio !== gameGridView.imageAspectRatio) {
+                                gameGridView.imageAspectRatio = newAspectRatio;
+                                if (collectionListView && collectionListView.currentShortName) {
+                                    api.memory.set('lastImageAspectRatio_' + collectionListView.currentShortName, newAspectRatio);
+                                }
                             }
                             gameGridView.initialLayoutSet = true;
                         }
-
-                        if (sourceSize) {
-                            if (isHorizontal) {
-                                sourceSize.width = 680;
-                                sourceSize.height = 500;
-                            } else if (isVertical) {
-                                sourceSize.width = 498;
-                                sourceSize.height = 680;
-                            } else {
-                                sourceSize.width = 700;
-                                sourceSize.height = 700;
-                            }
-                        }
                     }
-                }
-
-                layer.enabled: gameGridView.currentIndex === index && status === Image.Ready
-                layer.effect: DropShadow {
-                    horizontalOffset: 5
-                    verticalOffset: 5
-                    radius: 80
-                    samples: 300
-                    color: "#FF000000"
                 }
             }
 
@@ -375,17 +445,17 @@ GridView {
                 height: width
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                visible: Boolean(model && model.favorite) && boxFront.visible
+                visible: model && model.favorite && boxFront.visible
 
                 Image {
                     id: favoriteIcon
-                    source: Boolean(model && model.favorite) ? "assets/icons/fav.png" : ""
+                    source: "assets/icons/fav.png"
                     width: parent.width
                     height: parent.height
                     anchors.centerIn: parent
-                    visible: Boolean(model && model.favorite)
                     mipmap: true
                     fillMode: Image.PreserveAspectFit
+                    cache: true
                 }
             }
 
@@ -393,11 +463,17 @@ GridView {
                 id: rectangleCurrentIndex
                 anchors.fill: parent
                 color: "transparent"
-                border.color: gameGridView.currentIndex === index ? "white" : "transparent"
-                border.width: 2
+                border.color: "white"
+                border.width: 3
+                visible: gameItem.isCurrent
+                opacity: gameItem.isCurrent ? 1.0 : 0.0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                }
 
                 SequentialAnimation on border.color {
-                    running: gameGridView.currentIndex === index
+                    running: gameItem.isCurrent
                     loops: Animation.Infinite
                     ColorAnimation { to: "transparent"; duration: 500 }
                     PauseAnimation { duration: 100 }
@@ -407,20 +483,32 @@ GridView {
             }
 
             Rectangle {
+                id: dimOverlay
+                anchors.fill: parent
+                color: "black"
+                opacity: gameItem.isCurrent ? 0.0 : 0.45
+                visible: boxFront.status === Image.Ready || titleBackground.visible
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+                }
+            }
+
+            Rectangle {
                 id: titleBackground
                 anchors.fill: parent
                 color: "#1a1a1a"
-                visible: !boxFront.visible && !loadingSpinner.visible
+                visible: boxFront.status !== Image.Ready
 
                 Text {
                     id: titleText
-                    text: model.title
+                    text: model ? model.title : ""
                     anchors.centerIn: parent
                     width: parent.width * 0.9
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     color: "white"
-                    font.pixelSize: parent.height * 0.08
+                    font.pixelSize: Math.max(12, parent.height * 0.06)
                     elide: Text.ElideRight
                     maximumLineCount: 3
                 }
@@ -434,6 +522,7 @@ GridView {
                 height: width
                 visible: boxFront.status === Image.Loading
                 fillMode: Image.PreserveAspectFit
+                cache: true
 
                 RotationAnimation on rotation {
                     from: 0
@@ -453,44 +542,49 @@ GridView {
         var totalRows = Math.ceil(model.count / columns);
 
         if (direction === "up") {
-            if (currentRow === 0) {
-                return model.count - 1;
-            } else {
-                var newIndex = currentIdx - columns;
-                return newIndex >= 0 ? newIndex : currentIdx;
-            }
-        } else if (direction === "down") {
-            if (currentRow === totalRows - 1) {
-                return 0;
-            } else {
-                var newIndex = currentIdx + columns;
-                return newIndex < model.count ? newIndex : currentIdx;
-            }
+            return currentRow === 0 ? model.count - 1 : Math.max(0, currentIdx - columns);
         }
-
-        return currentIdx;
+        return currentRow >= totalRows - 1 ? 0 : Math.min(model.count - 1, currentIdx + columns);
     }
 
     onCurrentIndexChanged: {
         if (model && model.get && currentIndex >= 0 && currentIndex < count) {
-            sounds.naviSoundGrid.play();
-            currentGameData = model.get(currentIndex);
-
-            if (currentGameData && currentGameData.hasOwnProperty("title")) {
-                currentGame = currentGameData.title;
-            } else {
-                currentGame = "";
+            if (sounds && sounds.naviSoundGrid) {
+                sounds.naviSoundGrid.play();
             }
 
-            if (currentGameData) {
-                gameChanged(currentGameData);
+            var gameData = model.get(currentIndex);
+            if (gameData !== currentGameData) {
+                currentGameData = gameData;
+                currentGame = gameData ? gameData.title || "" : "";
+
+                if (gameData) {
+                    api.memory.set('lastGameTitle', currentGame);
+                    gameChanged(gameData);
+                }
             }
         }
     }
 
     Component.onCompleted: {
-        initialLayoutSet = false
-        favoriteToggled.connect(handleFavoriteToggle)
+        console.log("=== GAMEGRIDVIEW INIT ===")
+
+        if (collectionListView && collectionListView.currentShortName) {
+            var savedRatio = api.memory.get('lastImageAspectRatio_' + collectionListView.currentShortName);
+            if (savedRatio !== undefined && savedRatio !== null) {
+                imageAspectRatio = savedRatio;
+                initialLayoutSet = true;
+                console.log("Loaded saved aspect ratio:", savedRatio)
+            }
+        }
+
+        favoriteToggled.connect(handleFavoriteToggle);
+        console.log("Favorite toggled signal connected")
+
+        if (collectionListView && collectionListView.model) {
+            sourceModel = collectionListView.model.get(collectionListView.currentIndex).games;
+            console.log("Source model set")
+        }
     }
 
     Keys.onPressed: {

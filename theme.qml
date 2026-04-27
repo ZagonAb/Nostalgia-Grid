@@ -17,6 +17,9 @@ FocusScope {
     property var game: null
     property alias sounds: sounds
 
+    property string cachedColor: "#f62507"
+    property bool initialized: false
+
     ColorMapping {
         id: colorMapping
     }
@@ -53,11 +56,15 @@ FocusScope {
                     color: "#CC000000"
                 }
                 GradientStop {
+                    id: gradientStop
                     position: 1.0
-                    color: "#f62507"
+                    color: root.cachedColor
 
                     Behavior on color {
-                        ColorAnimation { duration: 300; easing.type: Easing.OutQuad }
+                        ColorAnimation {
+                            duration: 300
+                            easing.type: Easing.OutQuad
+                        }
                     }
                 }
             }
@@ -70,8 +77,11 @@ FocusScope {
                 gameGridView: gameGridView
 
                 onShortNameChanged: {
-
-                    collectionBar.gradient.stops[1].color = colorMapping.getColor(shortName);
+                    var newColor = colorMapping.getColor(shortName);
+                    if (root.cachedColor !== newColor) {
+                        root.cachedColor = newColor;
+                        gradientStop.color = newColor;
+                    }
                 }
             }
         }
@@ -94,9 +104,11 @@ FocusScope {
                     gameInfoRect: gameInfoRect
 
                     onGameChanged: {
-                        root.game = selectedGame;
-                        root.currentGame = selectedGame;
-                        gameInfoRect.currentGame = selectedGame;
+                        if (selectedGame && selectedGame !== root.currentGame) {
+                            root.game = selectedGame;
+                            root.currentGame = selectedGame;
+                            gameInfoRect.currentGame = selectedGame;
+                        }
                     }
                 }
             }
@@ -109,6 +121,7 @@ FocusScope {
         radius: 62
         visible: showGameInfo
         z: 1
+        cached: !showGameInfo
     }
 
     GameInfoRect {
@@ -130,24 +143,10 @@ FocusScope {
         currentFilter: gameGridView.currentFilter
         hasFavorites: gameGridView.hasFavorites
         hasHistory: gameGridView.hasHistory
-    }
-
-    Component.onCompleted: {
-        Qt.callLater(function() {
-            if (api.collections && api.collections.count > 0) {
-                var lastCollectionIndex = api.memory.get('lastCollectionIndex') || 0;
-                collectionListView.currentIndex = -1;
-                collectionListView.currentIndex = Math.min(lastCollectionIndex, api.collections.count - 1);
-                if (gameGridView.model && gameGridView.model.count > 0) {
-                    gameGridView.currentIndex = 0;
-                    gameGridView.positionViewAtIndex(0, GridView.Contain);
-                }
-
-                if (collectionListView.currentShortName) {
-                    collectionBar.gradient.stops[1].color = colorMapping.getColor(collectionListView.currentShortName);
-                }
-            }
-        });
+        gameGridView: gameGridView
+        gameInfoRect: gameInfoRect
+        collectionListView: collectionListView
+        sounds: root.sounds
     }
 
     Connections {
@@ -155,5 +154,29 @@ FocusScope {
         function onFilterChanged(newFilter) {
             horizontalBar.currentFilter = newFilter;
         }
+    }
+
+    Component.onCompleted: {
+        Qt.callLater(function() {
+            if (!root.initialized && api.collections && api.collections.count > 0) {
+                var lastCollectionIndex = api.memory.get('lastCollectionIndex') || 0;
+                var targetIndex = Math.min(lastCollectionIndex, api.collections.count - 1);
+
+                collectionListView.currentIndex = -1;
+                collectionListView.currentIndex = targetIndex;
+
+                if (gameGridView.model && gameGridView.model.count > 0) {
+                    gameGridView.currentIndex = 0;
+                    gameGridView.positionViewAtIndex(0, GridView.Contain);
+                }
+
+                if (collectionListView.currentShortName) {
+                    root.cachedColor = colorMapping.getColor(collectionListView.currentShortName);
+                    gradientStop.color = root.cachedColor;
+                }
+
+                root.initialized = true;
+            }
+        });
     }
 }
