@@ -439,23 +439,60 @@ GridView {
                 }
             }
 
+            Rectangle {
+                id: boxFrontGradient
+                anchors.fill: boxFront
+                visible: gameItem.isCurrent && boxFront.visible
+                gradient: Gradient {
+                    GradientStop { position: 0.6; color: "transparent" }
+                    GradientStop { position: 1.0; color: "#E8000000" }
+                }
+            }
+
             Item {
-                id: favoriteBadge
-                width: parent.width * 0.34
-                height: width
+                id: infoBar
+                anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                visible: model && model.favorite && boxFront.visible
+                anchors.bottomMargin: parent.height * 0.02
+                height: parent.height * 0.15
+                visible: gameItem.isCurrent && boxFront.visible
+                z: 1
 
-                Image {
-                    id: favoriteIcon
-                    source: "assets/icons/fav.png"
-                    width: parent.width
-                    height: parent.height
-                    anchors.centerIn: parent
-                    mipmap: true
-                    fillMode: Image.PreserveAspectFit
-                    cache: true
+                Row {
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        bottom: parent.bottom
+                        leftMargin: parent.height * 0.15
+                        rightMargin: parent.height * 0.15
+                    }
+                    spacing: 8
+
+                    Image {
+                        id: favoriteIcon
+                        source: "assets/icons/fav.svg"
+                        width: parent.parent.height * 0.7
+                        height: width
+                        visible: model && model.favorite
+                        mipmap: true
+                        fillMode: Image.PreserveAspectFit
+                        cache: true
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        id: gameTitle
+                        width: parent.width - (favoriteIcon.visible ? favoriteIcon.width + parent.spacing : 0)
+                        text: model ? model.title : ""
+                        color: "white"
+                        font.pixelSize: parent.parent.height * 0.35
+                        font.bold: true
+                        wrapMode: Text.WordWrap
+                        maximumLineCount: 4
+                        elide: Text.ElideRight
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
             }
 
