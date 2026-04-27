@@ -16,7 +16,6 @@ FocusScope {
     property var currentGame: null
     property var game: null
     property alias sounds: sounds
-
     property string cachedColor: "#f62507"
     property bool initialized: false
 

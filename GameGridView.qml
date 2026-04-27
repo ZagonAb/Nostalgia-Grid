@@ -30,7 +30,6 @@ GridView {
         interval: 300
         repeat: false
         onTriggered: {
-            console.log("Double click timer expired, resetting lastClickedIndex")
             gameGridView.lastClickedIndex = -1
         }
     }
@@ -286,35 +285,28 @@ GridView {
 
                 property bool longPressTriggered: false
                 property bool isClick: false
+                property real pressX: 0
+                property real pressY: 0
 
                 onPressed: {
-                    console.log("=== GAME ITEM PRESSED ===")
-                    console.log("Index:", index)
-                    console.log("Current index:", gameGridView.currentIndex)
-                    console.log("Game title:", model ? model.title : "unknown")
-
                     longPressTriggered = false
                     isClick = true
+                    pressX = mouse.x
+                    pressY = mouse.y
                     longPressTimer.restart()
                 }
 
                 onReleased: {
-                    console.log("=== GAME ITEM RELEASED ===")
-                    console.log("Long press triggered:", longPressTriggered)
-
                     longPressTimer.stop()
 
                     if (longPressTriggered) {
-                        console.log("Long press was triggered, ignoring release")
                         return
                     }
 
                     if (!isClick) {
-                        console.log("Not a click, ignoring")
                         return
                     }
 
-                    console.log("Handling as click")
                     handleGameClick()
                 }
 
@@ -326,7 +318,6 @@ GridView {
                 }
 
                 onCanceled: {
-                    console.log("Mouse area canceled")
                     longPressTimer.stop()
                     longPressTriggered = false
                     isClick = false
@@ -337,20 +328,15 @@ GridView {
                     interval: 500
                     repeat: false
                     onTriggered: {
-                        console.log("=== LONG PRESS TRIGGERED ===")
-                        console.log("Index:", index)
-
                         parent.longPressTriggered = true
                         parent.isClick = false
 
                         if (gameGridView.currentIndex !== index) {
-                            console.log("Selecting game first")
                             gameGridView.currentIndex = index
                             gameGridView.positionViewAtIndex(index, GridView.Contain)
                         }
 
                         if (gameGridView.gameInfoRect) {
-                            console.log("Opening GameInfoRect")
                             gameGridView.gameInfoRect.currentGame = gameGridView.currentGameData
                             gameGridView.gameInfoRect.showGameInfo = true
                             gameGridView.gameInfoRect.forceActiveFocus()
@@ -358,8 +344,6 @@ GridView {
                             if (sounds && sounds.toDetails) {
                                 sounds.toDetails.play()
                             }
-                        } else {
-                            console.log("ERROR: gameInfoRect not available")
                         }
                     }
                 }
@@ -369,12 +353,10 @@ GridView {
 
                     if (gameGridView.lastClickedIndex === index &&
                         (currentTime - gameGridView.lastClickTime) < 300) {
-                        console.log("DOUBLE CLICK DETECTED")
                         doubleClickTimer.stop()
                         gameGridView.lastClickedIndex = -1
 
                         if (gameGridView.currentIndex === index && gameGridView.currentGameData) {
-                            console.log("Launching game:", gameGridView.currentGameData.title)
                             var gameToLaunch = gameGridView.currentGameData
                             if (sounds && sounds.launchgame) {
                                 sounds.launchgame.play()
@@ -385,18 +367,13 @@ GridView {
                             gameToLaunch.launch()
                         }
                         } else {
-                            console.log("SINGLE CLICK - Selecting game")
-
                             gameGridView.lastClickedIndex = index
                             gameGridView.lastClickTime = currentTime
                             doubleClickTimer.restart()
 
                             if (gameGridView.currentIndex !== index) {
-                                console.log("Changing selection to index:", index)
                                 gameGridView.currentIndex = index
                                 positionViewAtIndex(index, GridView.Contain)
-                            } else {
-                                console.log("Already selected, waiting for double click")
                             }
                         }
                 }
@@ -604,23 +581,18 @@ GridView {
     }
 
     Component.onCompleted: {
-        console.log("=== GAMEGRIDVIEW INIT ===")
-
         if (collectionListView && collectionListView.currentShortName) {
             var savedRatio = api.memory.get('lastImageAspectRatio_' + collectionListView.currentShortName);
             if (savedRatio !== undefined && savedRatio !== null) {
                 imageAspectRatio = savedRatio;
                 initialLayoutSet = true;
-                console.log("Loaded saved aspect ratio:", savedRatio)
             }
         }
 
         favoriteToggled.connect(handleFavoriteToggle);
-        console.log("Favorite toggled signal connected")
 
         if (collectionListView && collectionListView.model) {
             sourceModel = collectionListView.model.get(collectionListView.currentIndex).games;
-            console.log("Source model set")
         }
     }
 
