@@ -2,7 +2,7 @@
 
 - Inspired by the visual and navigation experience that Nintendo Switch offers for classic games.
 
-📢 No more updates for now, but if you have any suggestions, they're very welcome!
+📢 There will be improvements in optimization and compatibility with touchscreens for Android.
 
 # Screenshots
 ![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/7fd9ccbda9c886befa49b9fec79456bf4dd290b0/.meta/screenshots/screen0.png)
