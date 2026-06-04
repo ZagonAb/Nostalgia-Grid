@@ -3,8 +3,8 @@
 - Inspired by the visual and navigation experience that Nintendo Switch offers for classic games.
 
 # Screenshots
-![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/b77c15fcd5f43f9ec1d073262692170b823d46a3/.meta/screenshots/screen0.png)
-![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/b77c15fcd5f43f9ec1d073262692170b823d46a3/.meta/screenshots/screen1.png)
+![screenshot](https://github.com/ZagonAb/Nostalgia-Grid/blob/1b30df56fd7aaf990e8820196691896cba40d34d/.meta/screenshots/screen0.png)
+![screenshot1](https://github.com/ZagonAb/Nostalgia-Grid/blob/1b30df56fd7aaf990e8820196691896cba40d34d/.meta/screenshots/screen1.png)
 
 
 # Licencia
