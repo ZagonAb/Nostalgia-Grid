@@ -146,7 +146,7 @@ GridView {
 
     property string currentGame: ""
     property string spinnerSource: "assets/icons/spinner.svg"
-    property real squareThreshold: 0.15
+    property real squareThreshold: 0.22
     property real gridTransitionOpacity: 1.0
 
     onImageAspectRatioChanged: {
@@ -178,19 +178,8 @@ GridView {
     onModelChanged: {
         currentIndex = 0
         initialLayoutSet = false
+        imageAspectRatio = 0
         gameGridView.lastClickedIndex = -1
-
-        if (collectionListView && collectionListView.currentShortName) {
-            var savedRatio = api.memory.get('lastImageAspectRatio_' + collectionListView.currentShortName);
-            if (savedRatio !== undefined && savedRatio !== null) {
-                imageAspectRatio = savedRatio;
-                initialLayoutSet = true;
-            } else {
-                imageAspectRatio = 0;
-            }
-        } else {
-            imageAspectRatio = 0;
-        }
 
         if (model && model.count > 0) {
             var lastGameTitle = api.memory.get('lastGameTitle') || "";
@@ -401,20 +390,15 @@ GridView {
 
                             var newAspectRatio;
 
-                            if (Math.abs(1 - ratio) < gameGridView.squareThreshold) {
+                            if (Math.abs(1 - ratio) <= gameGridView.squareThreshold) {
                                 newAspectRatio = 0;
-                            } else if (ratio > 1 + gameGridView.squareThreshold) {
+                            } else if (ratio > 1.0 + gameGridView.squareThreshold) {
                                 newAspectRatio = 1;
                             } else {
                                 newAspectRatio = 2;
                             }
 
-                            if (newAspectRatio !== gameGridView.imageAspectRatio) {
-                                gameGridView.imageAspectRatio = newAspectRatio;
-                                if (collectionListView && collectionListView.currentShortName) {
-                                    api.memory.set('lastImageAspectRatio_' + collectionListView.currentShortName, newAspectRatio);
-                                }
-                            }
+                            gameGridView.imageAspectRatio = newAspectRatio;
                             gameGridView.initialLayoutSet = true;
                         }
                     }
@@ -586,14 +570,6 @@ GridView {
     }
 
     Component.onCompleted: {
-        if (collectionListView && collectionListView.currentShortName) {
-            var savedRatio = api.memory.get('lastImageAspectRatio_' + collectionListView.currentShortName);
-            if (savedRatio !== undefined && savedRatio !== null) {
-                imageAspectRatio = savedRatio;
-                initialLayoutSet = true;
-            }
-        }
-
         favoriteToggled.connect(handleFavoriteToggle);
 
         if (collectionListView && collectionListView.model) {

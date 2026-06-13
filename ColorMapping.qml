@@ -7,6 +7,7 @@ QtObject {
         "actionmax": "#5b82c4",
         "adam": "#6e7085",
         "advision": "#8b6a55",
+        "snkneogeo": "#D4AF37",
         "ags": "#6b472a",
         "amiga": "#9b85c4",
         "amiga1200": "#6b5e46",
