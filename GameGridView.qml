@@ -147,48 +147,33 @@ GridView {
     property real gridTransitionOpacity: 1.0
     property real gridTransitionScale: 1.0
 
-    onCollectionOrientationChanged: orientationTransition.restart()
+    function hideGridInstantly() {
+        revealAnimation.stop();
+        gameGridView.gridTransitionOpacity = 0.0;
+        gameGridView.gridTransitionScale = 0.92;
+    }
 
-    SequentialAnimation {
-        id: orientationTransition
+    function revealWithOrientation(orientation) {
+        gameGridView.displayOrientation = orientation;
+        revealAnimation.restart();
+    }
 
-        ParallelAnimation {
-            NumberAnimation {
-                target: gameGridView
-                property: "gridTransitionOpacity"
-                to: 0.0
-                duration: 140
-                easing.type: Easing.InQuad
-            }
-            NumberAnimation {
-                target: gameGridView
-                property: "gridTransitionScale"
-                to: 0.92
-                duration: 140
-                easing.type: Easing.InQuad
-            }
+    ParallelAnimation {
+        id: revealAnimation
+        NumberAnimation {
+            target: gameGridView
+            property: "gridTransitionOpacity"
+            to: 1.0
+            duration: 220
+            easing.type: Easing.OutQuad
         }
-
-        ScriptAction {
-            script: gameGridView.displayOrientation = gameGridView.collectionOrientation
-        }
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: gameGridView
-                property: "gridTransitionOpacity"
-                to: 1.0
-                duration: 220
-                easing.type: Easing.OutQuad
-            }
-            NumberAnimation {
-                target: gameGridView
-                property: "gridTransitionScale"
-                to: 1.0
-                duration: 280
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.4
-            }
+        NumberAnimation {
+            target: gameGridView
+            property: "gridTransitionScale"
+            to: 1.0
+            duration: 280
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.4
         }
     }
 
@@ -201,13 +186,23 @@ GridView {
         var key = gameGridView.orientationCacheKey();
 
         if (gameGridView._orientationCache.hasOwnProperty(key)) {
-            gameGridView.collectionOrientation = gameGridView._orientationCache[key];
+            var resolved = gameGridView._orientationCache[key];
+            gameGridView.collectionOrientation = resolved;
             gameGridView.orientationResolved = true;
             aspectProbe.source = "";
+
+            if (resolved === gameGridView.displayOrientation) {
+                return;
+            }
+
+            gameGridView.hideGridInstantly();
+            gameGridView.revealWithOrientation(resolved);
             return;
         }
 
         gameGridView.orientationResolved = false;
+        gameGridView.hideGridInstantly();
+
         var firstGame = (gameGridView.model && gameGridView.model.count > 0) ? gameGridView.model.get(0) : null;
         var src = (firstGame && firstGame.assets && firstGame.assets.boxFront) ? firstGame.assets.boxFront : "";
 
@@ -216,6 +211,7 @@ GridView {
             gameGridView.collectionOrientation = "vertical";
             gameGridView.orientationResolved = true;
             aspectProbe.source = "";
+            gameGridView.revealWithOrientation("vertical");
             return;
         }
 
@@ -233,6 +229,7 @@ GridView {
             if (currentKey === pendingKey) {
                 gameGridView.collectionOrientation = orientation;
                 gameGridView.orientationResolved = true;
+                gameGridView.revealWithOrientation(orientation);
             }
         }
     }
