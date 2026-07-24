@@ -8,7 +8,7 @@ Item {
 
     property var categoryThresholds: [
         { name: "vertical", maxRatio: 0.90 },
-        { name: "square",  maxRatio: 1.10 },
+        { name: "square",  maxRatio: 1.25 },
         { name: "horizontal", maxRatio: 1.65 },
         { name: "panoramic", maxRatio: Infinity }
     ]
