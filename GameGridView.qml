@@ -12,8 +12,9 @@ GridView {
     property var collectionListView
     property var gameInfoRect
     property var currentGameData: null
-    property bool initialLayoutSet: false
-    property int imageAspectRatio: 0
+    property string collectionOrientation: "vertical"
+    property bool orientationResolved: false
+    property var _orientationCache: ({})
     property int currentFilter: 0
     property bool hasFavorites: false
     property bool hasHistory: false
@@ -128,43 +129,111 @@ GridView {
         ]
     }
 
-    property int columns: {
-        switch(imageAspectRatio) {
-            case 1: return 4;
-            case 2: return 6;
-            default: return 4;
-        }
-    }
+    readonly property var orientationProfiles: ({
+        vertical:   { columns: 6, rows: 3, zoomScale: 1.20 },
+        square:     { columns: 4, rows: 3, zoomScale: 1.30 },
+        horizontal: { columns: 4, rows: 4, zoomScale: 1.40 },
+        panoramic:  { columns: 3, rows: 5, zoomScale: 1.15 }
+    })
 
-    property int rows: {
-        switch(imageAspectRatio) {
-            case 1: return 4;
-            case 2: return 3;
-            default: return 3;
-        }
-    }
+    property string displayOrientation: "vertical"
+    readonly property var activeProfile: orientationProfiles[displayOrientation] || orientationProfiles.vertical
+
+    property int columns: activeProfile.columns
+    property int rows: activeProfile.rows
 
     property string currentGame: ""
     property string spinnerSource: "assets/icons/spinner.svg"
-    property real squareThreshold: 0.22
     property real gridTransitionOpacity: 1.0
+    property real gridTransitionScale: 1.0
 
-    onImageAspectRatioChanged: {
-        gridTransitionOpacity = 0.0;
-        fadeInTimer.restart();
+    onCollectionOrientationChanged: orientationTransition.restart()
+
+    SequentialAnimation {
+        id: orientationTransition
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: gameGridView
+                property: "gridTransitionOpacity"
+                to: 0.0
+                duration: 140
+                easing.type: Easing.InQuad
+            }
+            NumberAnimation {
+                target: gameGridView
+                property: "gridTransitionScale"
+                to: 0.92
+                duration: 140
+                easing.type: Easing.InQuad
+            }
+        }
+
+        ScriptAction {
+            script: gameGridView.displayOrientation = gameGridView.collectionOrientation
+        }
+
+        ParallelAnimation {
+            NumberAnimation {
+                target: gameGridView
+                property: "gridTransitionOpacity"
+                to: 1.0
+                duration: 220
+                easing.type: Easing.OutQuad
+            }
+            NumberAnimation {
+                target: gameGridView
+                property: "gridTransitionScale"
+                to: 1.0
+                duration: 280
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.4
+            }
+        }
     }
 
-    Timer {
-        id: fadeInTimer
-        interval: 80
-        repeat: false
-        onTriggered: gridTransitionOpacity = 1.0
+    function orientationCacheKey() {
+        var collIdx = collectionListView ? collectionListView.currentIndex : -1;
+        return "col:" + collIdx + ":filt:" + currentFilter;
     }
 
-    Behavior on gridTransitionOpacity {
-        NumberAnimation {
-            duration: 120
-            easing.type: Easing.InOutQuad
+    function updateOrientation() {
+        var key = gameGridView.orientationCacheKey();
+
+        if (gameGridView._orientationCache.hasOwnProperty(key)) {
+            gameGridView.collectionOrientation = gameGridView._orientationCache[key];
+            gameGridView.orientationResolved = true;
+            aspectProbe.source = "";
+            return;
+        }
+
+        gameGridView.orientationResolved = false;
+        var firstGame = (gameGridView.model && gameGridView.model.count > 0) ? gameGridView.model.get(0) : null;
+        var src = (firstGame && firstGame.assets && firstGame.assets.boxFront) ? firstGame.assets.boxFront : "";
+
+        if (src === "") {
+            gameGridView._orientationCache[key] = "vertical";
+            gameGridView.collectionOrientation = "vertical";
+            gameGridView.orientationResolved = true;
+            aspectProbe.source = "";
+            return;
+        }
+
+        aspectProbe.pendingKey = key;
+        aspectProbe.source = src;
+    }
+
+    AspectProbe {
+        id: aspectProbe
+        property string pendingKey: ""
+        onResolved: {
+            var currentKey = gameGridView.orientationCacheKey();
+            gameGridView._orientationCache[pendingKey] = orientation;
+
+            if (currentKey === pendingKey) {
+                gameGridView.collectionOrientation = orientation;
+                gameGridView.orientationResolved = true;
+            }
         }
     }
 
@@ -177,9 +246,8 @@ GridView {
 
     onModelChanged: {
         currentIndex = 0
-        initialLayoutSet = false
-        imageAspectRatio = 0
         gameGridView.lastClickedIndex = -1
+        gameGridView.updateOrientation();
 
         if (model && model.count > 0) {
             var lastGameTitle = api.memory.get('lastGameTitle') || "";
@@ -210,6 +278,8 @@ GridView {
         z: gameGridView.currentIndex === index ? 100 : 1
 
         opacity: gameGridView.gridTransitionOpacity
+        scale: gameGridView.gridTransitionScale
+        transformOrigin: Item.Center
 
         readonly property bool isCurrent: gameGridView.currentIndex === index
 
@@ -219,16 +289,9 @@ GridView {
             readonly property int column: index % gameGridView.columns
             readonly property int row: Math.floor(index / gameGridView.columns)
 
-            property real zoomScale: {
-                if (gameItem.isCurrent && boxFront.status === Image.Ready) {
-                    switch(gameGridView.imageAspectRatio) {
-                        case 1: return 1.40;
-                        case 2: return 1.20;
-                        default: return 1.3;
-                    }
-                }
-                return 1.0
-            }
+            property real zoomScale: (gameItem.isCurrent && boxFront.status === Image.Ready)
+            ? gameGridView.activeProfile.zoomScale
+            : 1.0
 
             width: parent ? parent.width * zoomScale : 0
             height: parent ? parent.height * zoomScale : 0
@@ -384,23 +447,6 @@ GridView {
                 onStatusChanged: {
                     if (status === Image.Error && source !== "assets/default.png") {
                         boxFront.source = "assets/default.png"
-                    } else if (status === Image.Ready && !gameGridView.initialLayoutSet && index === 0) {
-                        if (implicitWidth > 0 && implicitHeight > 0) {
-                            var ratio = implicitWidth / implicitHeight;
-
-                            var newAspectRatio;
-
-                            if (Math.abs(1 - ratio) <= gameGridView.squareThreshold) {
-                                newAspectRatio = 0;
-                            } else if (ratio > 1.0 + gameGridView.squareThreshold) {
-                                newAspectRatio = 1;
-                            } else {
-                                newAspectRatio = 2;
-                            }
-
-                            gameGridView.imageAspectRatio = newAspectRatio;
-                            gameGridView.initialLayoutSet = true;
-                        }
                     }
                 }
             }
