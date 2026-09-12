@@ -21,6 +21,8 @@ GridView {
 
     signal favoriteToggled(var game, bool isFavorite)
     signal filterChanged(int newFilter)
+    signal restoreFinished()
+
 
     property var sourceModel: null
     property int lastClickedIndex: -1
@@ -95,10 +97,129 @@ GridView {
 
     onCurrentFilterChanged: {
         if (!sourceModel) return;
+        console.log("[PT][GameGridView] onCurrentFilterChanged ->", currentFilter,
+                    "sourceModel.count:", sourceModel.count,
+                    "filterProxyModel.count (antes):", filterProxyModel.count);
         model = currentFilter === 0 ? sourceModel : filterProxyModel;
         currentIndex = 0;
         positionViewAtIndex(0, GridView.Contain);
         updateFilterAvailability();
+        console.log("[PT][GameGridView] onCurrentFilterChanged (fin) -> model.count:", model ? model.count : -1);
+    }
+
+    property string _pendingRestoreTitle: ""
+    property int _restoreSettleAttempts: 0
+    property bool _isInitialRestore: false
+
+    function restoreState(filter, gameTitle) {
+        var safeFilter = filter;
+        if (safeFilter === 1 && !hasFavorites) safeFilter = 0;
+        if (safeFilter === 2 && !hasHistory) safeFilter = 0;
+
+        console.log("[PT][GameGridView] restoreState -> filter pedido:", filter,
+                    "safeFilter:", safeFilter,
+                    "hasFavorites:", hasFavorites,
+                    "hasHistory:", hasHistory,
+                    "gameTitle:", gameTitle);
+
+        _isInitialRestore = true;
+        _beginSettledChange(safeFilter, gameTitle || "");
+    }
+
+    function applyFilter(newFilter) {
+        if (!sourceModel) return;
+        console.log("[PT][GameGridView] applyFilter ->", currentFilter, "->", newFilter);
+        _isInitialRestore = false;
+        _beginSettledChange(newFilter, "");
+    }
+
+    function _beginSettledChange(targetFilter, pendingTitle) {
+        _pendingRestoreTitle = pendingTitle;
+        _restoreSettleAttempts = 0;
+        restoreSettleTimer.lastCount = -1;
+
+        if (currentFilter === targetFilter) {
+            restoreSettleTimer.restart();
+        } else {
+            currentFilter = targetFilter;
+            restoreSettleTimer.restart();
+        }
+    }
+
+    function _ensureGridVisible() {
+        console.log("[PT][GameGridView] _ensureGridVisible -> opacity:", gridTransitionOpacity,
+                    "scale:", gridTransitionScale);
+        if (gridTransitionOpacity < 1.0 || gridTransitionScale < 1.0) {
+            console.log("[PT][GameGridView] _ensureGridVisible -> forzando reveal");
+            revealAnimation.restart();
+        }
+    }
+
+    function _applyPendingRestore() {
+        var title = _pendingRestoreTitle;
+        _pendingRestoreTitle = "";
+
+        console.log("[PT][GameGridView] _applyPendingRestore -> title:", title,
+                    "model.count:", model ? model.count : -1,
+                    "currentFilter:", currentFilter);
+
+        if (title !== "" && model && model.count > 0) {
+            for (var i = 0; i < model.count; i++) {
+                var g = model.get(i);
+                if (g && g.title === title) {
+                    console.log("[PT][GameGridView] _applyPendingRestore -> encontrado en index:", i);
+                    currentIndex = -1;
+                    currentIndex = i;
+                    positionViewAtIndex(i, GridView.Contain);
+                    _ensureGridVisible();
+                    _finishPendingRestore();
+                    return;
+                }
+            }
+            console.log("[PT][GameGridView] _applyPendingRestore -> NO encontrado, cae a index 0");
+        }
+
+        currentIndex = -1;
+        currentIndex = 0;
+        positionViewAtIndex(0, GridView.Contain);
+
+        if (model && model.get && model.count > 0) {
+            currentGameData = model.get(0);
+            gameChanged(currentGameData);
+        }
+
+        _ensureGridVisible();
+        _finishPendingRestore();
+    }
+
+    function _finishPendingRestore() {
+        if (_isInitialRestore) {
+            _isInitialRestore = false;
+            console.log("[PT][GameGridView] restoreFinished()");
+            restoreFinished();
+        }
+    }
+
+    Timer {
+        id: restoreSettleTimer
+        interval: 80
+        repeat: true
+        property int lastCount: -1
+        onTriggered: {
+            var count = gameGridView.model ? gameGridView.model.count : 0;
+            gameGridView._restoreSettleAttempts++;
+
+            console.log("[PT][GameGridView] restoreSettleTimer tick", gameGridView._restoreSettleAttempts,
+                        "-> count:", count, "lastCount:", lastCount);
+
+            if (count === lastCount || gameGridView._restoreSettleAttempts > 15) {
+                stop();
+                console.log("[PT][GameGridView] restoreSettleTimer -> asentado, aplicando cambio");
+                gameGridView._applyPendingRestore();
+                return;
+            }
+            lastCount = count;
+        }
     }
 
     SortFilterProxyModel {
@@ -185,13 +306,18 @@ GridView {
     function updateOrientation() {
         var key = gameGridView.orientationCacheKey();
 
+        console.log("[PT][GameGridView] updateOrientation -> key:", key,
+                    "opacity actual:", gameGridView.gridTransitionOpacity,
+                    "en caché:", gameGridView._orientationCache.hasOwnProperty(key));
+
         if (gameGridView._orientationCache.hasOwnProperty(key)) {
             var resolved = gameGridView._orientationCache[key];
             gameGridView.collectionOrientation = resolved;
             gameGridView.orientationResolved = true;
             aspectProbe.source = "";
 
-            if (resolved === gameGridView.displayOrientation) {
+            if (resolved === gameGridView.displayOrientation && gameGridView.gridTransitionOpacity >= 1.0) {
+                console.log("[PT][GameGridView] updateOrientation -> ya visible, nada que hacer");
                 return;
             }
 
@@ -226,6 +352,11 @@ GridView {
             var currentKey = gameGridView.orientationCacheKey();
             gameGridView._orientationCache[pendingKey] = orientation;
 
+            console.log("[PT][GameGridView] aspectProbe.onResolved -> pendingKey:", pendingKey,
+                        "currentKey:", currentKey,
+                        "orientation:", orientation,
+                        "match:", currentKey === pendingKey);
+
             if (currentKey === pendingKey) {
                 gameGridView.collectionOrientation = orientation;
                 gameGridView.orientationResolved = true;
@@ -245,6 +376,9 @@ GridView {
         currentIndex = 0
         gameGridView.lastClickedIndex = -1
         gameGridView.updateOrientation();
+
+        console.log("[PT][GameGridView] onModelChanged -> model.count:", model ? model.count : -1,
+                    "currentFilter:", currentFilter);
 
         if (model && model.count > 0) {
             var lastGameTitle = api.memory.get('lastGameTitle') || "";
@@ -279,6 +413,7 @@ GridView {
         transformOrigin: Item.Center
 
         readonly property bool isCurrent: gameGridView.currentIndex === index
+        readonly property bool artVisible: boxFront.visible || defaultBoxArt.visible
 
         Item {
             id: imageContainer
@@ -286,7 +421,7 @@ GridView {
             readonly property int column: index % gameGridView.columns
             readonly property int row: Math.floor(index / gameGridView.columns)
 
-            property real zoomScale: (gameItem.isCurrent && boxFront.status === Image.Ready)
+            property real zoomScale: (gameItem.isCurrent && gameItem.artVisible)
             ? gameGridView.activeProfile.zoomScale
             : 1.0
 
@@ -413,6 +548,8 @@ GridView {
                             if (collectionListView) {
                                 api.memory.set('lastCollectionIndex', collectionListView.currentIndex)
                             }
+                            api.memory.set('lastFilter', gameGridView.currentFilter)
+                            api.memory.set('lastGameTitle', gameToLaunch.title)
                             gameToLaunch.launch()
                         }
                         } else {
@@ -423,6 +560,9 @@ GridView {
                             if (gameGridView.currentIndex !== index) {
                                 gameGridView.currentIndex = index
                                 positionViewAtIndex(index, GridView.Contain)
+                                if (sounds && sounds.naviSoundGrid) {
+                                    sounds.naviSoundGrid.play()
+                                }
                             }
                         }
                 }
@@ -431,27 +571,24 @@ GridView {
             Image {
                 id: boxFront
                 anchors.fill: parent
-                source: {
-                    if (!model) return "assets/default.png"
-                        return model.assets.boxFront ? model.assets.boxFront : "assets/default.png"
-                }
+                source: (model && model.assets && model.assets.boxFront) ? model.assets.boxFront : ""
                 fillMode: Image.Stretch
-                visible: source !== "" && status === Image.Ready
+                visible: status === Image.Ready
                 asynchronous: true
                 cache: true
                 mipmap: true
+            }
 
-                onStatusChanged: {
-                    if (status === Image.Error && source !== "assets/default.png") {
-                        boxFront.source = "assets/default.png"
-                    }
-                }
+            DefaultBoxArt {
+                id: defaultBoxArt
+                anchors.fill: parent
+                visible: boxFront.status === Image.Null || boxFront.status === Image.Error
             }
 
             Rectangle {
                 id: boxFrontGradient
-                anchors.fill: boxFront
-                visible: gameItem.isCurrent && boxFront.visible
+                anchors.fill: parent
+                visible: gameItem.isCurrent && gameItem.artVisible
                 gradient: Gradient {
                     GradientStop { position: 0.6; color: "transparent" }
                     GradientStop { position: 1.0; color: "black" }
@@ -465,7 +602,7 @@ GridView {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: parent.height * 0.02
                 height: parent.height * 0.15
-                visible: gameItem.isCurrent && boxFront.visible
+                visible: gameItem.isCurrent && gameItem.artVisible
                 z: 1
 
                 Row {
@@ -533,7 +670,7 @@ GridView {
                 anchors.fill: parent
                 color: "black"
                 opacity: gameItem.isCurrent ? 0.0 : 0.45
-                visible: boxFront.status === Image.Ready || titleBackground.visible
+                visible: gameItem.artVisible || titleBackground.visible
 
                 Behavior on opacity {
                     NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
@@ -544,7 +681,7 @@ GridView {
                 id: titleBackground
                 anchors.fill: parent
                 color: "#1a1a1a"
-                visible: boxFront.status !== Image.Ready
+                visible: !gameItem.artVisible
 
                 Text {
                     id: titleText
@@ -595,17 +732,12 @@ GridView {
 
     onCurrentIndexChanged: {
         if (model && model.get && currentIndex >= 0 && currentIndex < count) {
-            if (sounds && sounds.naviSoundGrid) {
-                sounds.naviSoundGrid.play();
-            }
-
             var gameData = model.get(currentIndex);
             if (gameData !== currentGameData) {
                 currentGameData = gameData;
                 currentGame = gameData ? gameData.title || "" : "";
 
                 if (gameData) {
-                    api.memory.set('lastGameTitle', currentGame);
                     gameChanged(gameData);
                 }
             }
@@ -627,6 +759,7 @@ GridView {
                 if (newIndex !== currentIndex) {
                     currentIndex = newIndex;
                     positionViewAtIndex(currentIndex, GridView.Contain);
+                    if (sounds && sounds.naviSoundGrid) sounds.naviSoundGrid.play();
                 }
                 event.accepted = true;
             }
@@ -635,6 +768,7 @@ GridView {
                 if (newIndex !== currentIndex) {
                     currentIndex = newIndex;
                     positionViewAtIndex(currentIndex, GridView.Contain);
+                    if (sounds && sounds.naviSoundGrid) sounds.naviSoundGrid.play();
                 }
                 event.accepted = true;
             }
@@ -642,6 +776,7 @@ GridView {
                 if (currentIndex > 0) {
                     currentIndex--;
                     positionViewAtIndex(currentIndex, GridView.Contain);
+                    if (sounds && sounds.naviSoundGrid) sounds.naviSoundGrid.play();
                 }
                 event.accepted = true;
             }
@@ -649,6 +784,7 @@ GridView {
                 if (currentIndex < count - 1) {
                     currentIndex++;
                     positionViewAtIndex(currentIndex, GridView.Contain);
+                    if (sounds && sounds.naviSoundGrid) sounds.naviSoundGrid.play();
                 }
                 event.accepted = true;
             }
@@ -693,23 +829,8 @@ GridView {
                     nextFilter = (nextFilter + 1) % 3;
                 }
 
-                currentFilter = nextFilter;
-                sounds.naviSoundGrid.play();
-
-                if (currentFilter === 0) {
-                    model = collectionListView.model.get(collectionListView.currentIndex).games;
-                } else {
-                    filterProxyModel.sourceModel = collectionListView.model.get(collectionListView.currentIndex).games;
-                    model = filterProxyModel;
-                }
-
-                currentIndex = -1;
-                currentIndex = 0;
-                if (model && model.get && model.count > 0) {
-                    currentGameData = model.get(0);
-                    gameChanged(currentGameData);
-                }
-                positionViewAtIndex(0, GridView.Contain);
+                if (sounds && sounds.naviSoundGrid) sounds.naviSoundGrid.play();
+                applyFilter(nextFilter);
                 event.accepted = true;
             }
             else if (api.keys.isAccept(event)) {

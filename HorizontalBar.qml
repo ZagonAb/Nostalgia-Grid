@@ -181,13 +181,13 @@ Item {
                                     if (nextFilter === originalFilter) break
                             }
 
-                            gameGridView.currentFilter = nextFilter
-
                             if (sounds && sounds.naviSoundGrid) {
                                 sounds.naviSoundGrid.play()
                             } else if (sounds && sounds.toDetails) {
                                 sounds.toDetails.play()
                             }
+
+                            gameGridView.applyFilter(nextFilter)
                         }
                     }
                 }

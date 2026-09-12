@@ -55,6 +55,33 @@ function getRandomLongText() {
     return longTexts[Math.floor(Math.random() * longTexts.length)];
 }
 
+const splashMessages = [
+    "Restoring your collection...",
+    "Dusting off old cartridges...",
+    "Waking up retro consoles...",
+    "Reassembling pixel memories...",
+    "Rewinding to the good old days...",
+    "Charging up the power cells...",
+    "Booting nostalgia mode...",
+    "Fetching your high scores...",
+    "Polishing every pixel...",
+    "Syncing save states...",
+    "Spinning up the disk drive...",
+    "Reconnecting old friends...",
+    "Loading a blast from the past...",
+    "Searching for hidden save files...",
+    "Tuning the CRT signal..."
+];
+
+function getRandomSplashMessage(exclude) {
+    if (splashMessages.length <= 1) return splashMessages[0] || "";
+    var msg;
+    do {
+        msg = splashMessages[Math.floor(Math.random() * splashMessages.length)];
+    } while (msg === exclude);
+    return msg;
+}
+
 
 function getSystemColor(systemShortName, colorMapping) {
     if (!systemShortName || !colorMapping) {

@@ -18,6 +18,9 @@ FocusScope {
     property alias sounds: sounds
     property string cachedColor: "#f62507"
     property bool initialized: false
+    property bool interfaceReady: false
+
+    readonly property color splashBackgroundColor: Utils.interpolateColors("#101014", root.cachedColor, 0.4)
 
     ColorMapping {
         id: colorMapping
@@ -29,10 +32,22 @@ FocusScope {
         repeat: false
         onTriggered: {
             if (game) {
+                console.log("[PT][theme] launchTimer -> guardando lastCollectionIndex:", collectionListView.currentIndex,
+                            "lastFilter:", gameGridView.currentFilter,
+                            "lastGameTitle:", game.title);
                 api.memory.set('lastCollectionIndex', collectionListView.currentIndex);
+                api.memory.set('lastFilter', gameGridView.currentFilter);
+                api.memory.set('lastGameTitle', game.title);
                 game.launch();
             }
         }
+    }
+
+    function clearRestoreMemory() {
+        console.log("[PT][theme] clearRestoreMemory -> reseteando memoria de restauración");
+        api.memory.set('lastCollectionIndex', 0);
+        api.memory.set('lastFilter', 0);
+        api.memory.set('lastGameTitle', '');
     }
 
     Sounds {
@@ -40,8 +55,10 @@ FocusScope {
     }
 
     RowLayout {
+        id: mainContent
         anchors.fill: parent
         spacing: 0
+        enabled: root.interfaceReady
 
         Rectangle {
             id: collectionBar
@@ -153,20 +170,61 @@ FocusScope {
         function onFilterChanged(newFilter) {
             horizontalBar.currentFilter = newFilter;
         }
+        function onRestoreFinished() {
+            console.log("[PT][theme] restoreFinished -> interfaceReady = true");
+            root.interfaceReady = true;
+            root.clearRestoreMemory();
+        }
+    }
+
+    SplashScreen {
+        id: splashScreen
+        anchors.fill: parent
+        titleText: "NOSTALGIA GRID"
+        subtitleText: "Restoring your collection..."
+        minSplashDuration: 2600
+        interfaceReady: root.interfaceReady
+        themeColors: ({
+            background: root.splashBackgroundColor,
+            primary: "#f2a541",
+            text: "#f5e9da",
+            textSecondary: "#c9a97c"
+        })
     }
 
     Component.onCompleted: {
         Qt.callLater(function() {
-            if (!root.initialized && api.collections && api.collections.count > 0) {
+            if (!root.initialized) {
+                if (!api.collections || api.collections.count === 0) {
+                    console.log("[PT][theme] onCompleted -> sin colecciones, nada que restaurar");
+                    root.interfaceReady = true;
+                    root.initialized = true;
+                    return;
+                }
+
                 var lastCollectionIndex = api.memory.get('lastCollectionIndex') || 0;
                 var targetIndex = Math.min(lastCollectionIndex, api.collections.count - 1);
+                var lastFilter = api.memory.get('lastFilter') || 0;
+                var lastGameTitle = api.memory.get('lastGameTitle') || "";
+
+                console.log("[PT][theme] onCompleted -> lastCollectionIndex:", lastCollectionIndex,
+                            "targetIndex:", targetIndex,
+                            "lastFilter:", lastFilter,
+                            "lastGameTitle:", lastGameTitle);
 
                 collectionListView.currentIndex = -1;
                 collectionListView.currentIndex = targetIndex;
 
-                if (gameGridView.model && gameGridView.model.count > 0) {
-                    gameGridView.currentIndex = 0;
-                    gameGridView.positionViewAtIndex(0, GridView.Contain);
+                console.log("[PT][theme] tras fijar collectionListView.currentIndex ->",
+                            "gameGridView.model.count:", gameGridView.model ? gameGridView.model.count : -1,
+                            "hasFavorites:", gameGridView.hasFavorites,
+                            "hasHistory:", gameGridView.hasHistory);
+
+                if (gameGridView.model) {
+                    console.log("[PT][theme] llamando gameGridView.restoreState(", lastFilter, ",", lastGameTitle, ")");
+                    gameGridView.restoreState(lastFilter, lastGameTitle);
+                } else {
+                    root.interfaceReady = true;
                 }
 
                 if (collectionListView.currentShortName) {

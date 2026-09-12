@@ -101,7 +101,7 @@ PathView {
         }
         opacity: PathView.isCurrentItem ? 1.0 : 0.5
 
-        property bool isSelected: PathView.isCurrentItem
+        property bool isSelected: PathView.isCurrentItem ? true : false
 
         Behavior on scale {
             NumberAnimation {
@@ -187,11 +187,15 @@ PathView {
             mipmap: true
             width: Math.min(collectionPathView.width * 0.75, collectionPathView.height * 1.8)
             height: width / (sourceSize.width / sourceSize.height)
-            opacity: 1.0
             visible: status !== Image.Error
 
             sourceSize.width: 512
             sourceSize.height: 512
+
+            transform: Translate {
+                id: collectionImageReveal
+                y: vpx(14)
+            }
 
             layer.enabled: parent.isSelected
             layer.effect: DropShadow {
@@ -202,12 +206,39 @@ PathView {
                 color: "#FF000000"
             }
 
-            SequentialAnimation on scale {
-                running: PathView.isCurrentItem
-                loops: Animation.Infinite
-                PropertyAnimation { to: 0.95; duration: 700; easing.type: Easing.InOutQuad }
-                PropertyAnimation { to: 1.05; duration: 700; easing.type: Easing.InOutQuad }
-            }
+            states: [
+                State {
+                    name: "selected"
+                    when: parent.isSelected === true
+                    PropertyChanges { target: collectionImage; opacity: 1.0; scale: 1.0 }
+                    PropertyChanges { target: collectionImageReveal; y: 0 }
+                },
+                State {
+                    name: "idle"
+                    when: parent.isSelected !== true
+                    PropertyChanges { target: collectionImage; opacity: 0.55; scale: 0.88 }
+                    PropertyChanges { target: collectionImageReveal; y: vpx(14) }
+                }
+            ]
+
+            transitions: [
+                Transition {
+                    to: "selected"
+                    ParallelAnimation {
+                        NumberAnimation { target: collectionImage; property: "opacity"; duration: 360; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: collectionImage; property: "scale"; duration: 520; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+                        NumberAnimation { target: collectionImageReveal; property: "y"; duration: 420; easing.type: Easing.OutCubic }
+                    }
+                },
+                Transition {
+                    to: "idle"
+                    ParallelAnimation {
+                        NumberAnimation { target: collectionImage; property: "opacity"; duration: 260; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: collectionImage; property: "scale"; duration: 260; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: collectionImageReveal; property: "y"; duration: 260; easing.type: Easing.OutCubic }
+                    }
+                }
+            ]
         }
 
         Image {
@@ -221,7 +252,11 @@ PathView {
             mipmap: true
             sourceSize.width: 512
             sourceSize.height: 512
-            opacity: 1.0
+
+            transform: Translate {
+                id: defaultImageReveal
+                y: vpx(14)
+            }
 
             layer.enabled: parent.isSelected
             layer.effect: DropShadow {
@@ -232,12 +267,39 @@ PathView {
                 color: "#FF000000"
             }
 
-            SequentialAnimation on scale {
-                running: PathView.isCurrentItem
-                loops: Animation.Infinite
-                PropertyAnimation { to: 0.95; duration: 500; easing.type: Easing.InOutQuad }
-                PropertyAnimation { to: 1.05; duration: 500; easing.type: Easing.InOutQuad }
-            }
+            states: [
+                State {
+                    name: "selected"
+                    when: parent.isSelected === true
+                    PropertyChanges { target: defaultImage; opacity: 1.0; scale: 1.0 }
+                    PropertyChanges { target: defaultImageReveal; y: 0 }
+                },
+                State {
+                    name: "idle"
+                    when: parent.isSelected !== true
+                    PropertyChanges { target: defaultImage; opacity: 0.55; scale: 0.88 }
+                    PropertyChanges { target: defaultImageReveal; y: vpx(14) }
+                }
+            ]
+
+            transitions: [
+                Transition {
+                    to: "selected"
+                    ParallelAnimation {
+                        NumberAnimation { target: defaultImage; property: "opacity"; duration: 360; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: defaultImage; property: "scale"; duration: 520; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+                        NumberAnimation { target: defaultImageReveal; property: "y"; duration: 420; easing.type: Easing.OutCubic }
+                    }
+                },
+                Transition {
+                    to: "idle"
+                    ParallelAnimation {
+                        NumberAnimation { target: defaultImage; property: "opacity"; duration: 260; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: defaultImage; property: "scale"; duration: 260; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: defaultImageReveal; property: "y"; duration: 260; easing.type: Easing.OutCubic }
+                    }
+                }
+            ]
         }
     }
 
@@ -248,6 +310,10 @@ PathView {
                 currentShortName = selectedCollection.shortName
                 currentCollectionName = selectedCollection.name
                 indexToPosition = currentIndex
+
+                console.log("[PT][CollectionListView] updateCurrentCollection -> index:", currentIndex,
+                            "shortName:", currentShortName,
+                            "games.count:", selectedCollection.games ? selectedCollection.games.count : -1);
 
                 shortNameChanged(currentShortName)
 
@@ -286,6 +352,10 @@ PathView {
             currentCollectionName = selectedCollection.name;
             indexToPosition = currentIndex;
 
+            console.log("[PT][CollectionListView] onCurrentIndexChanged -> index:", currentIndex,
+                        "shortName:", currentShortName,
+                        "-> forzando gameGridView.currentFilter = 0");
+
             gameGridView.currentFilter = 0;
             gameGridView.sourceModel = selectedCollection.games;
             gameGridView.model = selectedCollection.games;
@@ -295,7 +365,6 @@ PathView {
             }
             gameGridView.currentIndex = 0;
             gameGridView.positionViewAtIndex(0, GridView.Contain);
-            api.memory.set('lastCollectionIndex', currentIndex);
 
             shortNameChanged(currentShortName);
         }
