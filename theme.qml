@@ -72,7 +72,12 @@ FocusScope {
                     root._pendingUpdateNotes = releaseNotes
                     api.memory.set("lastUpdateNotified", latestVer)
 
-                    postSplashUpdateTimer.restart()
+                    if (!splashScreen.visible) {
+                        console.log("[PT][update] splash ya oculto, mostrando notificación")
+                        postSplashUpdateTimer.restart()
+                    } else {
+                        console.log("[PT][update] splash activo, esperando onSplashFinished")
+                    }
 
                 } catch (e) {
                     console.warn("[PT][update] error parseando respuesta:", e)
@@ -86,7 +91,7 @@ FocusScope {
 
     Timer {
         id: postSplashUpdateTimer
-        interval: 900
+        interval: 500
         repeat: false
         onTriggered: {
             if (root._pendingUpdateVersion !== "") {
@@ -274,7 +279,7 @@ FocusScope {
         })
 
         onSplashFinished: {
-            console.log("[PT][theme] splashFinished -> verificando update pendiente")
+            console.log("[PT][theme] splashFinished -> verificando update pendiente:", root._pendingUpdateVersion)
             if (root._pendingUpdateVersion !== "") {
                 postSplashUpdateTimer.restart()
             }

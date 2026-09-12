@@ -27,10 +27,10 @@ FocusScope {
     opacity: 0
     property real cardScale: 0.5
 
-    readonly property color _accent: "#f2a541"
+    readonly property color _accent: "#ffffff"
     readonly property color _accentDark: "#c97b1a"
-    readonly property color _surface: "#1a1410"
-    readonly property color _border: "#f2a541"
+    readonly property color _surface: "#202326"
+    readonly property color _border: "#ffffff"
     readonly property color _textPrimary: "#f5e9da"
     readonly property color _textSoft: "#c9a97c"
 
@@ -89,7 +89,7 @@ FocusScope {
             verticalOffset: vpx(4)
             radius: vpx(28)
             samples: 40
-            color: "#88f2a541"
+            color: "white"
             transparentBorder: true
         }
 
@@ -300,7 +300,7 @@ FocusScope {
                 width: parent.width
                 height: notesText.implicitHeight + vpx(16)
                 radius: vpx(8)
-                color: "#22f2a541"
+                color: "#191c1e"
                 visible: notification.expanded && notification.releaseNotes.length > 0
 
                 Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
@@ -347,41 +347,28 @@ FocusScope {
     ParallelAnimation {
         id: openAnim
         NumberAnimation {
-            target: notification
-            property: "opacity"
-            from: 0
-            to: 1
-            duration: 260
-            easing.type: Easing.OutQuad
+            target: notification; property: "opacity"
+            from: 0; to: 1
+            duration: 260; easing.type: Easing.OutQuad
         }
         NumberAnimation {
-            target: notification
-            property: "cardScale"
-            from: 0.5
-            to: 1.0
-            duration: 400
-            easing.type: Easing.OutBack
-            easing.overshoot: 1.2
+            target: notification; property: "cardScale"
+            from: 0.5; to: 1.0
+            duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.2
         }
     }
 
     ParallelAnimation {
         id: closeAnim
         NumberAnimation {
-            target: notification
-            property: "opacity"
-            from: 1
-            to: 0
-            duration: 200
-            easing.type: Easing.InQuad
+            target: notification; property: "opacity"
+            from: 1; to: 0
+            duration: 200; easing.type: Easing.InQuad
         }
         NumberAnimation {
-            target: notification
-            property: "cardScale"
-            from: 1.0
-            to: 0.6
-            duration: 200
-            easing.type: Easing.InQuad
+            target: notification; property: "cardScale"
+            from: 1.0; to: 0.6
+            duration: 200; easing.type: Easing.InQuad
         }
         onStopped: notification.closed()
     }
